@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Belcourt Theatre — Film Archive</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #111116;
+  --surface:   #1b1b21;
+  --surface2:  #232329;
+  --surface3:  #2b2b32;
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.13);
+  --text:      #e2e2ec;
+  --text-2:    #8a8a9e;
+  --text-3:    #505060;
+  --blue:      #378ADD;
+  --blue-dim:  rgba(55,138,221,0.14);
+  --green:     #3dab74;
+  --green-dim: rgba(61,171,116,0.14);
+  --amber:     #c9a24a;
+  --amber-dim: rgba(201,162,74,0.14);
+  --rose:      #b85c88;
+  --rose-dim:  rgba(184,92,136,0.14);
+  --r:    10px;
+  --r-sm: 5px;
+  --f:    'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+:root.light {
+  --bg:        #e8e8e3;
+  --surface:   #ffffff;
+  --surface2:  #f3f3ef;
+  --surface3:  #eaeae6;
+  --border:    rgba(0,0,0,0.07);
+  --border2:   rgba(0,0,0,0.13);
+  --text:      #18181e;
+  --text-2:    #606068;
+  --text-3:    #a0a0a8;
+  --blue:      #1a5ca8;
+  --blue-dim:  rgba(26,92,168,0.10);
+  --green:     #2a8a56;
+  --green-dim: rgba(42,138,86,0.10);
+  --amber:     #8a6a18;
+  --amber-dim: rgba(138,106,24,0.10);
+  --rose:      #8a3a60;
+  --rose-dim:  rgba(138,58,96,0.10);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--f); font-size: 14px; min-height: 100vh; padding: 2rem 1rem; transition: background 0.2s; }
+
+/* LOAD SCREEN */
+#load-screen {
+  position: fixed; inset: 0; background: #111116; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+}
+.load-inner { text-align: center; max-width: 340px; padding: 2rem; }
+.load-title { font-size: 20px; font-weight: 600; margin-bottom: 3px; }
+.load-eyebrow { font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--blue); margin-bottom: 2rem; }
+.load-hint { font-size: 12px; color: #6b7590; margin-bottom: 1.5rem; line-height: 1.6; }
+.load-btn {
+  display: inline-block; padding: 9px 24px;
+  background: #378ADD; color: #fff; border-radius: var(--r-sm);
+  font-family: var(--f); font-size: 13px; font-weight: 500; cursor: pointer;
+}
+.load-btn:hover { background: #2266bb; }
+#load-error { font-size: 12px; color: #e05c5c; margin-top: 1rem; display: none; }
+
+/* APP CARD */
+.app { max-width: 760px; margin: 0 auto; border: 0.5px solid var(--border2); border-radius: var(--r); background: var(--surface); overflow: hidden; }
+
+/* HEADER */
+.app-head { padding: 1.25rem 1.5rem 1rem; border-bottom: 0.5px solid var(--border); display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+.app-head h1 { font-size: 18px; font-weight: 600; line-height: 1.2; }
+.app-head p { font-size: 12px; color: var(--text-2); margin-top: 3px; }
+.theme-btn { flex-shrink: 0; background: none; border: 0.5px solid var(--border2); border-radius: 20px; padding: 4px 12px; font-family: var(--f); font-size: 11px; color: var(--text-2); cursor: pointer; white-space: nowrap; transition: color 0.15s; }
+.theme-btn:hover { color: var(--text); }
+
+/* CONTROLS */
+.controls { padding: 1rem 1.5rem; border-bottom: 0.5px solid var(--border); display: flex; flex-direction: column; gap: 7px; }
+.ctrl-input, .ctrl-select {
+  width: 100%; padding: 8px 12px; background: var(--surface2);
+  border: 0.5px solid var(--border2); border-radius: var(--r-sm);
+  color: var(--text); font-family: var(--f); font-size: 13px; outline: none;
+  transition: border-color 0.15s;
+}
+.ctrl-input::placeholder { color: var(--text-3); }
+.ctrl-input:focus, .ctrl-select:focus { border-color: var(--blue); }
+.ctrl-select {
+  appearance: none; cursor: pointer; padding-right: 28px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a8a9e'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center;
+  background-size: 8px 5px;
+  background-color: var(--surface2);
+}
+.view-row { display: flex; justify-content: flex-end; }
+.view-toggle { display: flex; border: 0.5px solid var(--border2); border-radius: var(--r-sm); overflow: hidden; }
+.view-btn { background: none; border: none; border-right: 0.5px solid var(--border2); padding: 7px 16px; font-family: var(--f); font-size: 12px; color: var(--text-2); cursor: pointer; transition: background 0.1s, color 0.1s; }
+.view-btn:last-child { border-right: none; }
+.view-btn.active { background: var(--surface2); color: var(--text); font-weight: 500; }
+.view-btn:hover:not(.active) { background: var(--surface3); }
+
+/* STATS ROW */
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 0.5px solid var(--border); }
+.stat-cell { padding: 14px 16px; border-right: 0.5px solid var(--border); }
+.stat-cell:last-child { border-right: none; }
+.stat-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-3); margin-bottom: 5px; font-weight: 500; }
+.stat-val { font-size: 22px; font-weight: 600; line-height: 1; }
+
+/* RESULTS BAR */
+.results-bar { padding: 8px 1.5rem; font-size: 12px; color: var(--text-2); border-bottom: 0.5px solid var(--border); }
+.results-bar strong { color: var(--text); font-weight: 500; }
+
+/* FILM LIST */
+.film-cols { display: grid; grid-template-columns: 2fr 110px 70px 110px; gap: 8px; }
+.film-head { padding: 8px 1.5rem; border-bottom: 0.5px solid var(--border); }
+.film-head-inner { font-size: 10px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-3); font-weight: 500; }
+.film-row { padding: 10px 1.5rem; border-bottom: 0.5px solid var(--border); cursor: pointer; transition: background 0.1s; }
+.film-row:hover { background: rgba(255,255,255,0.03); }
+:root.light .film-row:hover { background: rgba(0,0,0,0.03); }
+.film-title { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.3; }
+.film-meta { font-size: 12px; color: var(--text-2); }
+
+/* BADGES */
+.badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 500; white-space: nowrap; }
+.badge-blue   { background: var(--blue-dim);  color: var(--blue); }
+.badge-green  { background: var(--green-dim); color: var(--green); }
+.badge-amber  { background: var(--amber-dim); color: var(--amber); }
+.badge-rose   { background: var(--rose-dim);  color: var(--rose); }
+.badge-sm { font-size: 10px; padding: 1px 6px; margin-left: 5px; border-radius: 3px; }
+
+/* PAGINATION */
+.pagination { display: flex; align-items: center; justify-content: space-between; padding: 10px 1.5rem; border-top: 0.5px solid var(--border); font-size: 12px; color: var(--text-2); flex-wrap: wrap; gap: 8px; }
+.page-btns { display: flex; gap: 3px; flex-wrap: wrap; }
+.page-btn { min-width: 28px; height: 28px; padding: 0 5px; border: 0.5px solid var(--border2); background: none; border-radius: 4px; font-size: 12px; font-family: var(--f); color: var(--text-2); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: border-color 0.1s; }
+.page-btn:hover { border-color: var(--text-3); }
+.page-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); font-weight: 500; }
+.page-btn:disabled { opacity: 0.3; cursor: default; }
+
+/* INLINE YEAR BAR CHART */
+.year-bars-wrap { padding: 1.25rem 1.5rem 1.5rem; border-top: 0.5px solid var(--border); }
+.year-bars-title { font-size: 10px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-3); font-weight: 500; margin-bottom: 10px; }
+.bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.bar-yr { font-size: 11px; color: var(--text-2); width: 38px; text-align: right; flex-shrink: 0; }
+.bar-track { flex: 1; background: var(--surface2); border-radius: 2px; height: 11px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 2px; background: var(--blue); opacity: 0.75; }
+.bar-cnt { font-size: 11px; color: var(--text-2); width: 34px; flex-shrink: 0; }
+
+/* STATS TAB */
+.stats-tab { padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+.s-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 0.5rem; }
+.s-card { background: var(--surface2); border: 0.5px solid var(--border); border-radius: 8px; padding: 1rem; }
+.s-card-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-3); margin-bottom: 6px; font-weight: 500; }
+.s-card-val { font-size: 26px; font-weight: 600; line-height: 1; }
+.s-card-sub { font-size: 11px; color: var(--text-2); margin-top: 5px; }
+.chart-card { background: var(--surface2); border: 0.5px solid var(--border); border-radius: 8px; padding: 1.25rem; }
+.chart-card-title { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+.chart-card-sub { font-size: 11px; color: var(--text-2); margin-bottom: 1rem; }
+
+/* INFO TAB */
+.info-tab { padding: 1.5rem; }
+.info-tab h2 { font-size: 16px; font-weight: 600; margin-bottom: 1.25rem; }
+.info-section { margin-bottom: 1.25rem; }
+.info-lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--blue); font-weight: 500; margin-bottom: 6px; }
+.info-text { font-size: 13px; color: var(--text-2); line-height: 1.7; }
+.info-divider { border: none; border-top: 0.5px solid var(--border); margin: 1.25rem 0; }
+
+/* DETAIL OVERLAY */
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.72); z-index: 200; align-items: center; justify-content: center; padding: 1rem; }
+.overlay.open { display: flex; }
+.detail { background: var(--surface); border: 0.5px solid var(--border2); border-radius: var(--r); width: 100%; max-width: 520px; max-height: 88vh; overflow-y: auto; }
+.detail-head { padding: 1.25rem 1.5rem; border-bottom: 0.5px solid var(--border); }
+.detail-title { font-size: 17px; font-weight: 600; color: var(--text); line-height: 1.2; margin-bottom: 4px; }
+.detail-sub { font-size: 12px; color: var(--text-2); }
+.detail-poster { padding: 1rem 1.5rem 0; display: flex; justify-content: center; }
+.detail-poster img { max-height: 260px; max-width: 180px; border-radius: 6px; object-fit: cover; border: 0.5px solid var(--border2); }
+.detail-tags { padding: 0.75rem 1.5rem 0; display: flex; gap: 6px; flex-wrap: wrap; }
+.detail-body { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1.25rem; padding: 1rem 1.5rem; }
+.d-field label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.09em; color: var(--text-3); display: block; margin-bottom: 3px; font-weight: 500; }
+.d-field span { font-size: 13px; color: var(--text-2); line-height: 1.5; display: block; }
+.d-field.full { grid-column: 1 / -1; }
+.detail-foot { padding: 0.75rem 1.5rem; border-top: 0.5px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+.btn-close { background: none; border: 0.5px solid var(--border2); border-radius: var(--r-sm); padding: 6px 16px; font-family: var(--f); font-size: 12px; color: var(--text-2); cursor: pointer; transition: color 0.1s; }
+.btn-close:hover { color: var(--text); }
+.btn-imdb { font-size: 12px; color: var(--blue); text-decoration: none; border: 0.5px solid rgba(55,138,221,0.35); border-radius: var(--r-sm); padding: 6px 14px; display: none; transition: background 0.1s; }
+.btn-imdb:hover { background: var(--blue-dim); }
+
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- LOAD SCREEN -->
+<div id="load-screen">
+  <div class="load-inner">
+    <div class="load-title">Belcourt Theatre</div>
+    <div class="load-eyebrow">Film Archive</div>
+    <p class="load-hint">
+      Load your project file to browse the archive.<br>
+      Works with any <code style="font-size:11px;background:#1a1d27;padding:2px 6px;border-radius:3px;color:#93baf5;">belcourtfilms.json</code> or compatible project file.
+    </p>
+    <label class="load-btn">
+      Load database
+      <input type="file" accept=".json" style="display:none" onchange="loadDatabase(this)">
+    </label>
+    <div id="load-error"></div>
+  </div>
+</div>
+
+<!-- APP CARD -->
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="app-head">
+    <div>
+      <h1>Belcourt Theatre — film archive</h1>
+      <p id="head-sub">Every film screened at the Belcourt, Nashville</p>
+    </div>
+    <button class="theme-btn" id="theme-btn" onclick="toggleTheme()">☀ Light</button>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <input class="ctrl-input" type="text" id="search" placeholder="Search titles, directors, series, notes…" oninput="onFilter()">
+    <select class="ctrl-select" id="fYear" onchange="onFilter()"><option value="">All years</option></select>
+    <select class="ctrl-select" id="fDecade" onchange="onFilter()"><option value="">All decades</option></select>
+    <select class="ctrl-select" id="fType" onchange="onFilter()">
+      <option value="">All types</option>
+      <option value="revival">Revival</option>
+      <option value="silent">Silent Film</option>
+      <option value="35mm">35mm</option>
+      <option value="new">New release</option>
+    </select>
+    <select class="ctrl-select" id="fSort" onchange="onFilter()">
+      <option value="date-desc">Sort: newest first</option>
+      <option value="date-asc">Sort: oldest first</option>
+      <option value="run-desc">Sort: longest run</option>
+      <option value="alpha">Sort: A–Z</option>
+    </select>
+    <div class="view-row">
+      <div class="view-toggle">
+        <button class="view-btn active" onclick="showTab('list')">List</button>
+        <button class="view-btn" onclick="showTab('stats')">Stats</button>
+        <button class="view-btn" onclick="showTab('info')">Info</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS ROW (always visible) -->
+  <div class="stats-row">
+    <div class="stat-cell"><div class="stat-lbl">Total films</div><div class="stat-val" id="hdr-total">—</div></div>
+    <div class="stat-cell"><div class="stat-lbl">Years</div><div class="stat-val">101</div></div>
+    <div class="stat-cell"><div class="stat-lbl">Avg. run</div><div class="stat-val" id="hdr-avg">—</div></div>
+    <div class="stat-cell"><div class="stat-lbl">Longest run</div><div class="stat-val" id="hdr-longest">—</div></div>
+  </div>
+
+  <!-- LIST TAB -->
+  <div id="tab-list">
+    <div class="film-head">
+      <div class="film-cols film-head-inner">
+        <div>Title</div>
+        <div>Opened</div>
+        <div>Run</div>
+        <div>Type</div>
+      </div>
+    </div>
+    <div class="results-bar" id="results-info"></div>
+    <div id="tbody"></div>
+    <div class="pagination">
+      <div id="page-info"></div>
+      <div class="page-btns" id="page-btns"></div>
+    </div>
+    <div class="year-bars-wrap" id="year-bars-wrap">
+      <div class="year-bars-title">Films screened per year</div>
+      <div id="year-bars"></div>
+    </div>
+  </div>
+
+  <!-- STATS TAB -->
+  <div id="tab-stats" class="hidden">
+    <div class="stats-tab">
+      <div class="s-cards" id="s-cards"></div>
+
+      <div class="chart-card">
+        <div class="chart-card-title">Films per year</div>
+        <div style="position:relative;height:190px;"><canvas id="yearChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Films per decade</div>
+        <div style="position:relative;height:170px;"><canvas id="decadeChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Top 15 longest runs</div>
+        <div id="runWrap" style="position:relative;"><canvas id="runChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Top 10 programming series</div>
+        <div id="seriesWrap" style="position:relative;"><canvas id="seriesChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Most repeated viewings</div>
+        <div class="chart-card-sub">Films with the most separate runs at the Belcourt.</div>
+        <div id="repeatWrap" style="position:relative;"><canvas id="repeatChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Top genres</div>
+        <div id="genreWrap" style="position:relative;"><canvas id="genreChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Genre trends by decade</div>
+        <div class="chart-card-sub">Top 8 genres stacked by decade of release year.</div>
+        <div id="genreDecadeWrap" style="position:relative;height:250px;"><canvas id="genreDecadeChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Films by country of origin</div>
+        <div id="countryWrap" style="position:relative;"><canvas id="countryChart"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Most screened directors</div>
+        <div class="chart-card-sub">Number of films by each director that have played at the Belcourt.</div>
+        <div id="directorWrap" style="position:relative;"><canvas id="directorChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INFO TAB -->
+  <div id="tab-info" class="hidden">
+    <div class="info-tab">
+      <h2>About this archive</h2>
+
+      <div class="info-section">
+        <div class="info-lbl">What's not included</div>
+        <p class="info-text">Things not mentioned here: Rental Screenings, Seminars, Film Festivals not associated with the Belcourt (NJFF, BANFF, REEL ROCK).</p>
+      </div>
+
+      <div class="info-section">
+        <div class="info-lbl">Series</div>
+        <p class="info-text">The series column is still being updated. We added some of the bigger series the Belcourt has done, but we are certainly missing a lot of them.</p>
+      </div>
+
+      <div class="info-section">
+        <div class="info-lbl">35mm prints</div>
+        <p class="info-text">In 2019, internal Belcourt document logs started noting when we played 35mm prints of films. This has not been added to every instance that a 35mm print was shown of a film. However, if the logs say we played a print of the film, I have added a note to the entry.</p>
+      </div>
+
+      <hr class="info-divider">
+
+      <div class="info-section">
+        <div class="info-lbl">Catch a mistake?</div>
+        <p class="info-text">Submit it! We'll fix it. Submit the title of the film, the date/year it played, and what the mistake is.</p>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- DETAIL OVERLAY -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeDetail()">
+  <div class="detail">
+    <div class="detail-head">
+      <div class="detail-title" id="d-title"></div>
+      <div class="detail-sub" id="d-sub"></div>
+    </div>
+    <div class="detail-poster" id="d-poster" style="display:none"></div>
+    <div class="detail-tags" id="d-tags" style="display:none"></div>
+    <div class="detail-body" id="d-body"></div>
+    <div class="detail-foot">
+      <a class="btn-imdb" id="d-imdb-link" href="#" target="_blank">IMDb ↗</a>
+      <button class="btn-close" onclick="closeDetail()">Close</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+// ── Theme ────────────────────────────────────────────────────────────────────
+(function() {
+  if (localStorage.getItem('archive-theme') === 'light') {
+    document.documentElement.classList.add('light');
+  }
+})();
+document.addEventListener('DOMContentLoaded', function() {
+  const isLight = document.documentElement.classList.contains('light');
+  document.getElementById('theme-btn').textContent = isLight ? '☽ Dark' : '☀ Light';
+});
+function toggleTheme() {
+  const isLight = document.documentElement.classList.toggle('light');
+  document.getElementById('theme-btn').textContent = isLight ? '☽ Dark' : '☀ Light';
+  localStorage.setItem('archive-theme', isLight ? 'light' : 'dark');
+}
+
+// ── Data ─────────────────────────────────────────────────────────────────────
+let ALL = [];
+let IMDB_TITLES    = {};
+let IMDB_POSTERS   = {};
+let IMDB_DIRECTORS = {};
+let IMDB_RATINGS   = {};
+let IMDB_RUNTIME   = {};
+let IMDB_PLOT      = {};
+let IMDB_URLS      = {};
+let IMDB_YEAR      = {};
+let IMDB_GENRE     = {};
+let IMDB_COUNTRY   = {};
+
+let filtered = [], page = 1;
+const PER = 50;
+let statsRendered = false;
+
+function loadDatabase(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const err = document.getElementById('load-error');
+  err.style.display = 'none';
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (data && data.films && Array.isArray(data.films)) {
+        let raw = data.films;
+        if (data.customFilms && data.customFilms.length) raw = raw.concat(data.customFilms);
+        const deletedIds = new Set((data.deletedIds || []).map(String));
+        const FILM_CATS = new Set(['Film', 'Silent Film']);
+        ALL = raw.filter(function(f) {
+          return FILM_CATS.has(f.cat) && f.co !== 'Other' && !deletedIds.has(String(f.id));
+        });
+        IMDB_TITLES = {}; IMDB_POSTERS = {}; IMDB_DIRECTORS = {};
+        IMDB_RATINGS = {}; IMDB_RUNTIME = {}; IMDB_PLOT = {};
+        IMDB_URLS = {}; IMDB_YEAR = {}; IMDB_GENRE = {}; IMDB_COUNTRY = {};
+        const merged = Object.assign({}, data.preloadedResults || {}, data.results || {});
+        Object.entries(merged).forEach(function(entry) {
+          const id = entry[0], r = entry[1];
+          if (!r || !r.imdbData) return;
+          const d = r.imdbData;
+          const nna = function(v) { return v && v !== 'N/A' ? v : null; };
+          if (nna(d.title))      IMDB_TITLES[id]    = d.title;
+          if (nna(d.poster))     IMDB_POSTERS[id]   = d.poster;
+          if (nna(d.director))   IMDB_DIRECTORS[id] = d.director;
+          if (nna(d.imdbRating)) IMDB_RATINGS[id]   = d.imdbRating;
+          if (nna(d.runtime))    IMDB_RUNTIME[id]   = d.runtime;
+          if (nna(d.plot))       IMDB_PLOT[id]      = d.plot;
+          if (nna(d.imdbUrl))    IMDB_URLS[id]      = d.imdbUrl;
+          if (nna(d.year))       IMDB_YEAR[id]      = d.year;
+          if (nna(d.genre))      IMDB_GENRE[id]     = d.genre;
+          if (nna(d.country))    IMDB_COUNTRY[id]   = d.country;
+          if (nna(d.imdbID))     IMDB_URLS[id] = IMDB_URLS[id] || ('https://www.imdb.com/title/'+d.imdbID+'/');
+        });
+      } else if (Array.isArray(data)) {
+        const FILM_CATS = new Set(['Film', 'Silent Film']);
+        ALL = data.filter(function(f) { return FILM_CATS.has(f.cat) && f.co !== 'Other'; });
+      } else {
+        throw new Error('Unrecognised file format.');
+      }
+      if (!ALL.length) throw new Error('No films found in the file.');
+      try {
+        const raw = localStorage.getItem('belcourt_enrichment_v1');
+        if (raw) {
+          const local = JSON.parse(raw);
+          Object.entries(local).forEach(function(entry) {
+            const id = entry[0], r = entry[1];
+            if (r && r.imdbData) {
+              if (r.imdbData.title) IMDB_TITLES[id] = r.imdbData.title;
+              const poster = r.imdbData.Poster || r.imdbData.poster;
+              if (poster && poster !== 'N/A') IMDB_POSTERS[id] = poster;
+              const dir = r.imdbData.Director || r.imdbData.director;
+              if (dir && dir !== 'N/A') IMDB_DIRECTORS[id] = dir;
+            }
+          });
+        }
+      } catch(ex) {}
+      init();
+      document.getElementById('load-screen').style.display = 'none';
+    } catch(ex) {
+      err.textContent = 'Could not load file: ' + ex.message;
+      err.style.display = 'block';
+    }
+  };
+  reader.readAsText(file);
+}
+
+function displayTitle(f) {
+  return IMDB_TITLES[String(f.id)] || f.t || '\u2014';
+}
+
+function filmType(f) {
+  if (f.cat === 'Silent Film') return 'silent';
+  if (f.repertory === true)    return 'revival';
+  if (f['35mm'] === true)      return '35mm';
+  return 'new';
+}
+
+function typeBadge(type) {
+  switch(type) {
+    case 'silent':  return '<span class="badge badge-amber">Silent Film</span>';
+    case 'revival': return '<span class="badge badge-green">Revival</span>';
+    case '35mm':    return '<span class="badge badge-rose">35mm</span>';
+    default:        return '<span class="badge badge-blue">New release</span>';
+  }
+}
+
+function init() {
+  ['fYear','fDecade'].forEach(function(id) {
+    const el = document.getElementById(id);
+    while (el.options.length > 1) el.remove(1);
+  });
+  const years = [...new Set(ALL.map(function(f){return f.y;}).filter(Boolean))].sort(function(a,b){return b-a;});
+  const fy = document.getElementById('fYear');
+  years.forEach(function(y) { const o=document.createElement('option'); o.value=y; o.textContent=y; fy.appendChild(o); });
+  const decades = [...new Set(ALL.map(function(f){return f.y?Math.floor(f.y/10)*10:null;}).filter(Boolean))].sort(function(a,b){return b-a;});
+  const fd = document.getElementById('fDecade');
+  decades.forEach(function(d) { const o=document.createElement('option'); o.value=d; o.textContent=d+'s'; fd.appendChild(o); });
+
+  const withRun = ALL.filter(function(f){return f.r&&f.r<400;});
+  const avg = Math.round(withRun.reduce(function(s,f){return s+f.r;},0)/withRun.length);
+  const longest = [...withRun].sort(function(a,b){return b.r-a.r;})[0];
+  document.getElementById('hdr-total').textContent = ALL.length.toLocaleString();
+  document.getElementById('hdr-longest').textContent = longest.r;
+  document.getElementById('hdr-avg').textContent = avg;
+  document.getElementById('head-sub').textContent =
+    'Every film screened at the Belcourt, Nashville\u00a0\u00b7\u00a0' + ALL.length.toLocaleString() + ' titles';
+
+  statsRendered = false;
+  renderYearBars();
+  onFilter();
+}
+
+function renderYearBars() {
+  const yc = {};
+  ALL.forEach(f=>{ if(f.y) yc[f.y]=(yc[f.y]||0)+1; });
+  const allYears = Object.keys(yc).sort((a,b)=>b-a).slice(0,20).reverse();
+  const max = Math.max(...allYears.map(y=>yc[y]));
+  document.getElementById('year-bars').innerHTML = allYears.map(y=>`
+    <div class="bar-row">
+      <div class="bar-yr">${y}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(yc[y]/max*100)}%"></div></div>
+      <div class="bar-cnt">${yc[y]}</div>
+    </div>`).join('');
+}
+
+function fmt(d) {
+  if(!d) return '—';
+  const p=d.split('-');
+  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(p[1])-1]+' '+parseInt(p[2])+', '+p[0];
+}
+
+function onFilter() {
+  const q    = document.getElementById('search').value.toLowerCase();
+  const yr   = document.getElementById('fYear').value;
+  const dc   = document.getElementById('fDecade').value;
+  const ftype= document.getElementById('fType').value;
+  const sort = document.getElementById('fSort').value;
+
+  filtered = ALL.filter(f => {
+    const dirStr = IMDB_DIRECTORS[String(f.id)] || f.director || f.d || '';
+    if(q && ![(f.t||''),(f.s||''),(f.n||''),(f.co||''),dirStr].some(v=>v.toLowerCase().includes(q))) return false;
+    if(yr && f.y != yr) return false;
+    if(dc && Math.floor(f.y/10)*10 != dc) return false;
+    if(ftype && filmType(f) !== ftype) return false;
+    return true;
+  });
+
+  if(sort==='date-desc') filtered.sort((a,b)=>(b.o||'').localeCompare(a.o||''));
+  else if(sort==='date-asc') filtered.sort((a,b)=>(a.o||'').localeCompare(b.o||''));
+  else if(sort==='run-desc') filtered.sort((a,b)=>(b.r||0)-(a.r||0));
+  else if(sort==='alpha') filtered.sort((a,b)=>(displayTitle(a)||'').localeCompare(displayTitle(b)||''));
+
+  page = 1;
+  renderTable();
+}
+
+function renderTable() {
+  const start = (page-1)*PER;
+  const slice = filtered.slice(start, start+PER);
+  const mm35style = 'background:var(--rose-dim);color:var(--rose);font-size:10px;padding:1px 6px;border-radius:3px;font-weight:500;margin-left:5px;white-space:nowrap;';
+  document.getElementById('tbody').innerHTML = slice.map((f,i) => {
+    const type = filmType(f);
+    const title = displayTitle(f);
+    const mm35badge = (type !== '35mm' && f['35mm'] === true)
+      ? `<span style="${mm35style}">35mm</span>` : '';
+    return `<div class="film-row film-cols" onclick="openDetail(${start+i})">
+      <div class="film-title">${title}${mm35badge}</div>
+      <div class="film-meta">${fmt(f.o)}</div>
+      <div class="film-meta">${f.r ? f.r+' days' : '—'}</div>
+      <div>${typeBadge(type)}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('results-info').innerHTML =
+    `Showing <strong>${filtered.length ? start+1 : 0}–${Math.min(start+PER,filtered.length)}</strong> of <strong>${filtered.length.toLocaleString()}</strong> results`;
+  renderPagination();
+}
+
+function renderPagination() {
+  const total = Math.ceil(filtered.length/PER);
+  document.getElementById('page-info').textContent = `Page ${page} of ${total||1}`;
+  let pages=[1];
+  if(page>3) pages.push('...');
+  for(let i=Math.max(2,page-1);i<=Math.min(total-1,page+1);i++) pages.push(i);
+  if(page<total-2) pages.push('...');
+  if(total>1) pages.push(total);
+  document.getElementById('page-btns').innerHTML =
+    `<button class="page-btn" ${page===1?'disabled':''} onclick="goPage(${page-1})">‹</button>` +
+    pages.map(p=>p==='...'
+      ? `<span style="padding:0 4px;line-height:28px;color:var(--text-3)">…</span>`
+      : `<button class="page-btn ${p===page?'active':''}" onclick="goPage(${p})">${p}</button>`).join('') +
+    `<button class="page-btn" ${page===Math.ceil(filtered.length/PER)?'disabled':''} onclick="goPage(${page+1})">›</button>`;
+}
+
+function goPage(p) { page=p; renderTable(); window.scrollTo(0,0); }
+
+function openDetail(idx) {
+  const f  = filtered[idx];
+  const id = String(f.id);
+
+  document.getElementById('d-title').textContent = displayTitle(f);
+  const subParts = [];
+  if (IMDB_YEAR[id])      subParts.push(IMDB_YEAR[id] + ' release');
+  if (IMDB_DIRECTORS[id]) subParts.push('Dir. ' + IMDB_DIRECTORS[id]);
+  if (IMDB_RATINGS[id])   subParts.push('★ ' + IMDB_RATINGS[id]);
+  if (IMDB_RUNTIME[id])   subParts.push(IMDB_RUNTIME[id]);
+  document.getElementById('d-sub').textContent = subParts.join(' · ') || [f.y, f.cat].filter(Boolean).join(' · ');
+
+  const tagsEl = document.getElementById('d-tags');
+  const ts = 'display:inline-block;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;padding:3px 8px;border-radius:3px;font-weight:500;border:0.5px solid;';
+  const tags = [];
+  if (f['35mm'] === true)      tags.push(`<span style="${ts}background:var(--rose-dim);color:var(--rose);border-color:var(--rose);">35mm</span>`);
+  if (f.repertory === true)    tags.push(`<span style="${ts}background:var(--green-dim);color:var(--green);border-color:var(--green);">Repertory</span>`);
+  if (f.cat === 'Silent Film') tags.push(`<span style="${ts}background:var(--amber-dim);color:var(--amber);border-color:var(--amber);">Silent Film</span>`);
+  if (tags.length) { tagsEl.style.display = 'flex'; tagsEl.innerHTML = tags.join(''); }
+  else { tagsEl.style.display = 'none'; }
+
+  const genre   = IMDB_GENRE[id]   || f.genre   || '—';
+  const country = IMDB_COUNTRY[id] || f.country  || '—';
+  const fields = [
+    ['Opening date', fmt(f.o)],
+    ['Closing date', fmt(f.c)],
+    ['Run length',   f.r ? f.r + ' days' : '—'],
+    ['Venue',        f.co || '—'],
+    ['Genre',        genre],
+    ['Country',      country],
+    ['Series',       f.s  || null],
+    ['Plot',         IMDB_PLOT[id] || null],
+    ['Notes',        f.n  || null],
+  ].filter(function(row) { return row[1] !== null; });
+  document.getElementById('d-body').innerHTML = fields.map(function(row) {
+    const l = row[0], v = row[1];
+    const full = (l==='Plot'||l==='Notes'||l==='Series') ? 'full' : '';
+    return `<div class="d-field ${full}"><label>${l}</label><span>${v}</span></div>`;
+  }).join('');
+
+  const posterEl  = document.getElementById('d-poster');
+  const posterUrl = IMDB_POSTERS[id];
+  if (posterUrl) {
+    const proxied = 'https://images.weserv.nl/?url=' + encodeURIComponent(posterUrl) + '&w=200&h=300&fit=cover';
+    posterEl.innerHTML = `<img src="${proxied}" alt="${displayTitle(f)}" loading="lazy" onerror="this.parentElement.style.display='none'">`;
+    posterEl.style.display = 'flex';
+  } else {
+    posterEl.innerHTML = '';
+    posterEl.style.display = 'none';
+  }
+
+  const imdbLink = document.getElementById('d-imdb-link');
+  if (IMDB_URLS[id]) { imdbLink.href = IMDB_URLS[id]; imdbLink.style.display = 'inline-block'; }
+  else { imdbLink.style.display = 'none'; }
+
+  document.getElementById('overlay').classList.add('open');
+}
+function closeDetail() { document.getElementById('overlay').classList.remove('open'); }
+
+// ── Tab switching ─────────────────────────────────────────────────────────────
+function showTab(name) {
+  const tabs = ['list','stats','info'];
+  document.querySelectorAll('.view-btn').forEach((b,i)=>{
+    b.classList.toggle('active', tabs[i]===name);
+  });
+  tabs.forEach(t=>document.getElementById('tab-'+t).classList.toggle('hidden',t!==name));
+  document.getElementById('year-bars-wrap').classList.toggle('hidden', name!=='list');
+  if(name==='stats') renderStats();
+}
+
+// ── Statistics charts ─────────────────────────────────────────────────────────
+function renderStats() {
+  if(statsRendered) return;
+  statsRendered = true;
+
+  const withRun = ALL.filter(f=>f.r&&f.r<400);
+  const avg = Math.round(withRun.reduce((s,f)=>s+f.r,0)/withRun.length);
+  const longest = [...withRun].sort((a,b)=>b.r-a.r)[0];
+  const silents = ALL.filter(f=>f.cat==='Silent Film').length;
+  const withSeries = ALL.filter(f=>f.s&&f.s.trim()).length;
+  const allCountries = new Set();
+  ALL.forEach(f=>{ if(f.country) f.country.split(/[,/]/).forEach(c=>{ const t=c.trim(); if(t) allCountries.add(t); }); });
+
+  const cardAccents = ['#378ADD','#c9a24a','#3dab74','#b85c88','#7c5ce8','#3abbb8','#e86c4a'];
+  const cardData = [
+    ['Total films',           ALL.length.toLocaleString(), null,                           cardAccents[0]],
+    ['Silent films',          silents,                     null,                           cardAccents[1]],
+    ['Years of history',      101,                         '1925–2025',                    cardAccents[2]],
+    ['Average run',           avg,                         'days',                         cardAccents[3]],
+    ['Longest run',           longest.r,                   longest.t+' ('+longest.y+')',   cardAccents[4]],
+    ['Part of a series',      withSeries.toLocaleString(), null,                           cardAccents[5]],
+    ['Countries represented', allCountries.size,           null,                           cardAccents[6]],
+  ];
+  document.getElementById('s-cards').innerHTML = cardData.map(([label, val, sub, accent]) => `
+    <div class="s-card" style="border-top:2px solid ${accent};">
+      <div class="s-card-lbl">${label}</div>
+      <div class="s-card-val" style="color:${accent}">${val}</div>
+      ${sub ? `<div class="s-card-sub">${sub}</div>` : ''}
+    </div>`).join('');
+
+  const isLight = document.documentElement.classList.contains('light');
+  const tickCol  = isLight ? '#606068' : '#606070';
+  const gridCol  = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)';
+  const yTickCol = isLight ? '#18181e' : '#c8c8d8';
+
+  const C_YEAR    = ['rgba(55,138,221,0.70)',  'rgba(55,138,221,1)'];
+  const C_DECADE  = ['rgba(201,162,74,0.75)',  'rgba(201,162,74,1)'];
+  const C_RUNS    = ['rgba(61,171,116,0.75)',  'rgba(61,171,116,1)'];
+  const C_SERIES  = ['rgba(124,92,232,0.75)', 'rgba(124,92,232,1)'];
+  const C_REPEAT  = ['rgba(232,108,74,0.75)', 'rgba(232,108,74,1)'];
+  const C_GENRE   = ['rgba(58,187,184,0.75)', 'rgba(58,187,184,1)'];
+  const C_COUNTRY = ['rgba(184,92,136,0.75)', 'rgba(184,92,136,1)'];
+  const C_DIR     = ['rgba(201,162,74,0.75)', 'rgba(201,162,74,1)'];
+
+  // Films per year
+  const yc = {};
+  ALL.forEach(f=>{ if(f.y) yc[f.y]=(yc[f.y]||0)+1; });
+  const ys = Object.keys(yc).sort();
+  new Chart(document.getElementById('yearChart'), {
+    type:'bar',
+    data:{ labels:ys, datasets:[{ data:ys.map(y=>yc[y]), backgroundColor:C_YEAR[0], borderColor:C_YEAR[1], borderWidth:1 }] },
+    options:{ responsive:true, maintainAspectRatio:false, events:['click'],
+      plugins:{legend:{display:false}},
+      scales:{ x:{ticks:{font:{size:10},color:tickCol,autoSkip:true,maxTicksLimit:25,maxRotation:45},grid:{display:false}}, y:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}} } }
+  });
+
+  // Films per decade
+  const dcc = {};
+  ALL.forEach(f=>{ if(f.y){ const d=Math.floor(f.y/10)*10; dcc[d]=(dcc[d]||0)+1; } });
+  const ds = Object.keys(dcc).sort();
+  new Chart(document.getElementById('decadeChart'), {
+    type:'bar',
+    data:{ labels:ds.map(d=>d+'s'), datasets:[{ data:ds.map(d=>dcc[d]), backgroundColor:C_DECADE[0], borderColor:C_DECADE[1], borderWidth:1 }] },
+    options:{ responsive:true, maintainAspectRatio:false, events:['click'],
+      plugins:{legend:{display:false}},
+      scales:{ x:{ticks:{font:{size:11},color:tickCol},grid:{display:false}}, y:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}} } }
+  });
+
+  // Longest runs
+  const topRuns = [...ALL].filter(f=>f.r&&f.r<400).sort((a,b)=>b.r-a.r).slice(0,15);
+  document.getElementById('runWrap').style.height = Math.max(topRuns.length*24+60,160)+'px';
+  new Chart(document.getElementById('runChart'), {
+    type:'bar',
+    data:{ labels:topRuns.map(f=>f.t.length>34?f.t.slice(0,34)+'…':f.t), datasets:[{ data:topRuns.map(f=>f.r), backgroundColor:C_RUNS[0], borderColor:C_RUNS[1], borderWidth:1 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, events:['click'],
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+' days'}}},
+      scales:{ x:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:11},color:yTickCol},grid:{display:false}} } }
+  });
+
+  // Top series
+  const sc = {};
+  ALL.forEach(f=>{ if(f.s&&f.s.trim()) sc[f.s.trim()]=(sc[f.s.trim()]||0)+1; });
+  const topS = Object.entries(sc).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  document.getElementById('seriesWrap').style.height = Math.max(topS.length*24+60,160)+'px';
+  new Chart(document.getElementById('seriesChart'), {
+    type:'bar',
+    data:{ labels:topS.map(e=>e[0].length>38?e[0].slice(0,38)+'…':e[0]), datasets:[{ data:topS.map(e=>e[1]), backgroundColor:C_SERIES[0], borderColor:C_SERIES[1], borderWidth:1 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, events:['click'],
+      plugins:{legend:{display:false}},
+      scales:{ x:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:11},color:yTickCol},grid:{display:false}} } }
+  });
+
+  // Most repeated viewings
+  const rc = {};
+  ALL.forEach(f => {
+    const title = IMDB_TITLES[String(f.id)] || f.t || '';
+    if (!title) return;
+    const key = title.replace(/\s*\(35mm\)/i,'').replace(/\s*\(\d{4}\)\s*$/, '').trim();
+    if (!key) return;
+    if (!rc[key]) rc[key] = { count: 0, label: key };
+    rc[key].count++;
+  });
+  const topR = Object.values(rc).filter(e=>e.count>1).sort((a,b)=>b.count-a.count).slice(0,25);
+  if (topR.length) {
+    document.getElementById('repeatWrap').style.height = Math.max(topR.length*26+60,160)+'px';
+    new Chart(document.getElementById('repeatChart'), {
+      type:'bar',
+      data:{ labels:topR.map(e=>e.label), datasets:[{ data:topR.map(e=>e.count), backgroundColor:C_REPEAT[0], borderColor:C_REPEAT[1], borderWidth:1 }] },
+      options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, events:['click'],
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+' run'+(c.raw===1?'':'s')}}},
+        scales:{ x:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:11},color:yTickCol},grid:{display:false}} } }
+    });
+  } else {
+    document.getElementById('repeatWrap').innerHTML = '<p style="font-size:12px;color:var(--text-2);padding:0.5rem 0;">Not enough repeat data found.</p>';
+  }
+
+  function parseGenres(f) {
+    const g = IMDB_GENRE[String(f.id)] || f.genre || '';
+    return g ? g.split(/[,/]/).map(x=>x.trim()).filter(Boolean) : [];
+  }
+
+  // Top genres
+  const gc = {};
+  ALL.forEach(f=>{ parseGenres(f).forEach(g=>{ gc[g]=(gc[g]||0)+1; }); });
+  const topG = Object.entries(gc).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  document.getElementById('genreWrap').style.height = Math.max(topG.length*26+60,160)+'px';
+  new Chart(document.getElementById('genreChart'), {
+    type:'bar',
+    data:{ labels:topG.map(e=>e[0]), datasets:[{ data:topG.map(e=>e[1]), backgroundColor:C_GENRE[0], borderColor:C_GENRE[1], borderWidth:1 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, events:['click'],
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toLocaleString()+' films'}}},
+      scales:{ x:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:11},color:yTickCol},grid:{display:false}} } }
+  });
+
+  // Genre trends by decade
+  const top8 = Object.entries(gc).sort((a,b)=>b[1]-a[1]).slice(0,8).map(e=>e[0]);
+  const genreDecades = [...new Set(ALL.map(f=>f.y?Math.floor(f.y/10)*10:null).filter(Boolean))].sort();
+  const GENRE_PAL = [
+    ['rgba(55,138,221,0.80)','rgba(55,138,221,1)'],
+    ['rgba(45,106,191,0.80)','rgba(45,106,191,1)'],
+    ['rgba(120,80,200,0.80)','rgba(120,80,200,1)'],
+    ['rgba(200,90,90,0.80)','rgba(200,90,90,1)'],
+    ['rgba(60,170,130,0.80)','rgba(60,170,130,1)'],
+    ['rgba(200,155,50,0.80)','rgba(200,155,50,1)'],
+    ['rgba(180,80,160,0.80)','rgba(180,80,160,1)'],
+    ['rgba(80,180,200,0.80)','rgba(80,180,200,1)'],
+  ];
+  const genreDatasets = top8.map((genre,i)=>({
+    label: genre,
+    data: genreDecades.map(dec=>ALL.filter(f=>f.y&&Math.floor(f.y/10)*10===dec&&parseGenres(f).includes(genre)).length),
+    backgroundColor: GENRE_PAL[i][0], borderColor: GENRE_PAL[i][1], borderWidth:1,
+  }));
+  new Chart(document.getElementById('genreDecadeChart'), {
+    type:'bar',
+    data:{ labels:genreDecades.map(d=>d+'s'), datasets:genreDatasets },
+    options:{ responsive:true, maintainAspectRatio:false, events:['click'],
+      plugins:{
+        legend:{ display:true, position:'bottom', labels:{ color:yTickCol, font:{size:11}, boxWidth:12, padding:10 } },
+        tooltip:{ callbacks:{ label:c=>c.dataset.label+': '+c.raw } }
+      },
+      scales:{
+        x:{ stacked:true, ticks:{font:{size:11},color:tickCol}, grid:{display:false} },
+        y:{ stacked:true, ticks:{font:{size:10},color:tickCol}, grid:{color:gridCol} }
+      }
+    }
+  });
+
+  // Films by country
+  const cc = {};
+  ALL.forEach(f=>{ if(f.country) f.country.split(/[,/]/).forEach(c=>{ const t=c.trim(); if(t) cc[t]=(cc[t]||0)+1; }); });
+  const topC = Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,20);
+  document.getElementById('countryWrap').style.height = Math.max(topC.length*26+60,160)+'px';
+  new Chart(document.getElementById('countryChart'), {
+    type:'bar',
+    data:{ labels:topC.map(e=>e[0]), datasets:[{ data:topC.map(e=>e[1]), backgroundColor:C_COUNTRY[0], borderColor:C_COUNTRY[1], borderWidth:1 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, events:['click'],
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toLocaleString()+' films'}}},
+      scales:{ x:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:11},color:yTickCol},grid:{display:false}} } }
+  });
+
+  // Most screened directors
+  const dc2 = {};
+  ALL.forEach(f=>{
+    const raw2 = IMDB_DIRECTORS[String(f.id)] || f.director || f.d || '';
+    if(!raw2) return;
+    raw2.split(/[,/]/).forEach(name=>{ const t=name.trim(); if(t&&t!=='N/A') dc2[t]=(dc2[t]||0)+1; });
+  });
+  const topD = Object.entries(dc2).sort((a,b)=>b[1]-a[1]).slice(0,25);
+  if(topD.length) {
+    document.getElementById('directorWrap').style.height = Math.max(topD.length*26+60,160)+'px';
+    new Chart(document.getElementById('directorChart'), {
+      type:'bar',
+      data:{ labels:topD.map(e=>e[0]), datasets:[{ data:topD.map(e=>e[1]), backgroundColor:C_DIR[0], borderColor:C_DIR[1], borderWidth:1 }] },
+      options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, events:['click'],
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+' film'+(c.raw===1?'':'s')}}},
+        scales:{ x:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:11},color:yTickCol},grid:{display:false}} } }
+    });
+  } else {
+    document.getElementById('directorWrap').innerHTML = '<p style="font-size:12px;color:var(--text-2);padding:0.5rem 0;">No director data found.</p>';
+  }
+}
+</script>
+</body>
+</html>
