@@ -113,7 +113,28 @@ td { padding: 10px 12px; vertical-align: middle; }
 /* CHART SECTIONS */
 .chart-wrap { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 1.5rem; margin-bottom: 1.5rem; }
 #genreDecadeWrap { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-@media (max-width: 600px) { #genreDecadeWrap { grid-template-columns: 1fr; } }
+@media (max-width: 600px) {
+  #genreDecadeWrap { grid-template-columns: 1fr; }
+  .tab-btn { font-size: 14px; padding: 10px 16px; }
+  .search-wrap input, select { font-size: 15px; }
+  .results-info { font-size: 14px; }
+  table { font-size: 15px; }
+  thead th { font-size: 12px; }
+  .td-title { font-size: 16px; }
+  .td-meta { font-size: 14px; }
+  .page-btn { font-size: 14px; min-width: 36px; height: 36px; }
+  .page-info { font-size: 14px; }
+  .stat-lbl { font-size: 13px; }
+  .stat-card-label { font-size: 12px; }
+  .stat-card-sub { font-size: 14px; }
+  .chart-title { font-size: 17px; }
+  .detail-title { font-size: 19px; }
+  .detail-sub { font-size: 14px; }
+  .detail-field label { font-size: 12px; }
+  .detail-field span { font-size: 15px; }
+  thead th:nth-child(3), thead th:nth-child(4),
+  tbody td:nth-child(3), tbody td:nth-child(4) { display: none; }
+}
 .chart-title { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 400; color: var(--ink); margin-bottom: 1.25rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
 
 /* DETAIL OVERLAY */
@@ -170,13 +191,6 @@ td { padding: 10px 12px; vertical-align: middle; }
     <button class="theme-toggle" onclick="toggleTheme()" id="theme-btn">☀ Light</button>
     <div class="eyebrow">Nashville, Tennessee · Est. 1925</div>
     <h1>The Belcourt Theatre<br><em>Film Archive</em></h1>
-    <div class="stat-bar">
-      <div class="stat-item"><div class="stat-num" id="hdr-total">—</div><div class="stat-lbl">Total films</div></div>
-      <div class="stat-item"><div class="stat-num">101</div><div class="stat-lbl">Years</div></div>
-      <div class="stat-item"><div class="stat-num" id="hdr-longest">—</div><div class="stat-lbl">Longest run (days)</div></div>
-      <div class="stat-item"><div class="stat-num" id="hdr-avg">—</div><div class="stat-lbl">Avg run (days)</div></div>
-      <div class="stat-item"><div class="stat-num">4-18-2026</div><div class="stat-lbl">Last update</div></div>
-    </div>
   </div>
 </header>
 
@@ -295,8 +309,21 @@ td { padding: 10px 12px; vertical-align: middle; }
       <div id="genreDecadeWrap"></div>
     </div>
     <div class="chart-wrap">
-      <div class="chart-title">Films by country of origin</div>
-      <div id="countryWrap" style="position:relative;width:100%;"><canvas id="countryChart"></canvas></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem;">
+        <div class="chart-title" style="margin-bottom:0;">Films by country of origin</div>
+        <select id="countryYearFilter" onchange="renderCountryChart()" style="font-size:12px;padding:6px 24px 6px 10px;">
+          <option value="all">All years</option>
+          <option value="1925">1925–1949</option>
+          <option value="1960">1960s</option>
+          <option value="1970">1970s</option>
+          <option value="1980">1980s</option>
+          <option value="1990">1990s</option>
+          <option value="2000">2000s</option>
+          <option value="2010">2010s</option>
+          <option value="2020">2020s</option>
+        </select>
+      </div>
+      <div id="countryWrap" style="position:relative;width:100%;"></div>
     </div>
     <div class="chart-wrap">
       <div class="chart-title">Most screened directors</div>
@@ -317,9 +344,9 @@ td { padding: 10px 12px; vertical-align: middle; }
     <div class="detail-head">
       <div class="detail-title" id="d-title"></div>
       <div class="detail-sub" id="d-sub"></div>
+      <div id="d-tags" style="display:none;margin-top:10px;gap:6px;flex-wrap:wrap;"></div>
     </div>
     <div class="detail-poster" id="d-poster" style="display:none"></div>
-    <div id="d-tags" style="display:none;padding:0 1.5rem 1rem;gap:6px;flex-wrap:wrap;"></div>
     <div class="detail-body" id="d-body"></div>
     <div class="detail-foot" style="display:flex;justify-content:space-between;align-items:center;">
       <div style="display:flex;gap:8px;align-items:center;">
@@ -501,9 +528,6 @@ function init() {
   const withRun = ALL.filter(function(f){return f.r&&f.r<400;});
   const avg = Math.round(withRun.reduce(function(s,f){return s+f.r;},0)/withRun.length);
   const longest = [...withRun].sort(function(a,b){return b.r-a.r;})[0];
-  document.getElementById('hdr-total').textContent = ALL.length.toLocaleString();
-  document.getElementById('hdr-longest').textContent = longest.r;
-  document.getElementById('hdr-avg').textContent = avg;
 
   // Reset charts if stats were previously rendered
   statsRendered = false;
@@ -949,19 +973,9 @@ function renderStats() {
   const COUNTRY_NORMALIZE = {
     'USA':'United States','U.S.A.':'United States','United States of America':'United States','US':'United States',
     'UK':'United Kingdom','Great Britain':'United Kingdom','England':'United Kingdom','Britain':'United Kingdom',
-    'USSR':'Soviet Union','Russia':'Soviet Union',  // pre-1991 films often tagged as Russia
+    'USSR':'Soviet Union','Russia':'Soviet Union',
+    'West Germany':'Germany','East Germany':'Germany',
   };
-  const cc = {};
-  ALL.forEach(f=>{
-    if(f.country) f.country.split(/[,/]/).forEach(c=>{
-      const raw = c.trim();
-      if(!raw) return;
-      const t = COUNTRY_NORMALIZE[raw] || raw;
-      cc[t] = (cc[t]||0)+1;
-    });
-  });
-  const topC = Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,25);
-  const maxC = topC[0] ? topC[0][1] : 1;
   const FLAG_MAP = {
     'USA':'🇺🇸','United States':'🇺🇸','France':'🇫🇷','UK':'🇬🇧','United Kingdom':'🇬🇧',
     'Great Britain':'🇬🇧','England':'🇬🇧','Italy':'🇮🇹','Germany':'🇩🇪','Japan':'🇯🇵',
@@ -976,7 +990,7 @@ function renderStats() {
     'New Zealand':'🇳🇿','Chile':'🇨🇱','Colombia':'🇨🇴','Cuba':'🇨🇺',
     'Norway':'🇳🇴','Finland':'🇫🇮','Iceland':'🇮🇸','Ireland':'🇮🇪',
     'Philippines':'🇵🇭','Thailand':'🇹🇭','Vietnam':'🇻🇳',
-    'West Germany':'🇩🇪','East Germany':'🇩🇪','Morocco':'🇲🇦',
+    'Morocco':'🇲🇦',
     'Tunisia':'🇹🇳','Algeria':'🇩🇿','Lebanon':'🇱🇧','Palestine':'🇵🇸',
     'Serbia':'🇷🇸','Croatia':'🇭🇷','Yugoslavia':'🇾🇺','Slovakia':'🇸🇰',
     'Bulgaria':'🇧🇬','Ukraine':'🇺🇦','Georgia':'🇬🇪','Kazakhstan':'🇰🇿',
@@ -985,25 +999,47 @@ function renderStats() {
     'Kenya':'🇰🇪','Ghana':'🇬🇭','Ethiopia':'🇪🇹',
     'Peru':'🇵🇪','Venezuela':'🇻🇪','Uruguay':'🇺🇾','Bolivia':'🇧🇴',
   };
-  const cBarFill = 'rgba(196,92,138,0.80)';
-  const cBarTrack = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
-  document.getElementById('countryWrap').style.height = 'auto';
-  document.getElementById('countryWrap').innerHTML = `
-    <div style="display:flex;flex-direction:column;gap:0;">
-      ${topC.map(([country, count], i) => {
-        const flag = FLAG_MAP[country] || '🌍';
-        const pct  = Math.round((count / maxC) * 100);
-        return `<div style="display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid var(--border);">
-          <div style="width:22px;text-align:right;font-size:10px;color:var(--ink-faint);font-variant-numeric:tabular-nums;">${i+1}</div>
-          <div style="font-size:22px;width:30px;text-align:center;line-height:1;">${flag}</div>
-          <div style="width:120px;font-size:13px;color:var(--ink-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;">${country}</div>
-          <div style="flex:1;background:${cBarTrack};border-radius:3px;height:10px;overflow:hidden;">
-            <div style="height:100%;width:${pct}%;background:${cBarFill};border-radius:3px;"></div>
-          </div>
-          <div style="width:44px;text-align:right;font-size:12px;color:var(--ink-light);font-variant-numeric:tabular-nums;font-weight:500;">${count.toLocaleString()}</div>
-        </div>`;
-      }).join('')}
-    </div>`;
+  window.renderCountryChart = function() {
+    const sel = document.getElementById('countryYearFilter');
+    const val = sel ? sel.value : 'all';
+    let films = ALL;
+    if (val !== 'all') {
+      const decade = parseInt(val);
+      const end = decade === 1925 ? 1949 : decade + 9;
+      films = ALL.filter(f => f.y >= decade && f.y <= end);
+    }
+    const cc = {};
+    films.forEach(f=>{
+      if(f.country) f.country.split(/[,/]/).forEach(c=>{
+        const raw = c.trim();
+        if(!raw) return;
+        const t = COUNTRY_NORMALIZE[raw] || raw;
+        cc[t] = (cc[t]||0)+1;
+      });
+    });
+    const topC = Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,25);
+    const maxC = topC[0] ? topC[0][1] : 1;
+    const isLightNow = document.documentElement.classList.contains('light');
+    const cBarFill = 'rgba(196,92,138,0.80)';
+    const cBarTrack = isLightNow ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
+    document.getElementById('countryWrap').innerHTML = topC.length ? `
+      <div style="display:flex;flex-direction:column;gap:0;">
+        ${topC.map(([country, count], i) => {
+          const flag = FLAG_MAP[country] || '🌍';
+          const pct  = Math.round((count / maxC) * 100);
+          return `<div style="display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid var(--border);">
+            <div style="width:22px;text-align:right;font-size:10px;color:var(--ink-faint);font-variant-numeric:tabular-nums;">${i+1}</div>
+            <div style="font-size:22px;width:30px;text-align:center;line-height:1;">${flag}</div>
+            <div style="width:120px;font-size:13px;color:var(--ink-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;">${country}</div>
+            <div style="flex:1;background:${cBarTrack};border-radius:3px;height:10px;overflow:hidden;">
+              <div style="height:100%;width:${pct}%;background:${cBarFill};border-radius:3px;"></div>
+            </div>
+            <div style="width:44px;text-align:right;font-size:12px;color:var(--ink-light);font-variant-numeric:tabular-nums;font-weight:500;">${count.toLocaleString()}</div>
+          </div>`;
+        }).join('')}
+      </div>` : `<div style="padding:2rem;text-align:center;color:var(--ink-faint);font-size:13px;">No data for this period.</div>`;
+  };
+  renderCountryChart();
 
   // Most screened directors — card grid (top 25, unique titles only)
   const dirFilmMap = {}; // director -> { normTitle -> { title, releaseYear, rating, runs } }
@@ -1226,5 +1262,6 @@ function showTab(name) {
 }
 
 </script>
+<footer style="border-top:1px solid var(--border);margin-top:3rem;padding:1.25rem 1.5rem;text-align:center;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-faint);">The Belcourt Theatre Film Archive &nbsp;·&nbsp; Last updated 4-18-2026</footer>
 </body>
 </html>
