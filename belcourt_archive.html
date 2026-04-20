@@ -112,6 +112,8 @@ td { padding: 10px 12px; vertical-align: middle; }
 
 /* CHART SECTIONS */
 .chart-wrap { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; padding: 1.5rem; margin-bottom: 1.5rem; }
+#genreDecadeWrap { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+@media (max-width: 600px) { #genreDecadeWrap { grid-template-columns: 1fr; } }
 .chart-title { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 400; color: var(--ink); margin-bottom: 1.25rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
 
 /* DETAIL OVERLAY */
@@ -229,8 +231,23 @@ td { padding: 10px 12px; vertical-align: middle; }
     <div style="font-size:13.5px;color:var(--ink-light);line-height:1.8;display:flex;flex-direction:column;gap:1.5rem;">
 
       <div>
+        <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--blue);font-weight:500;margin-bottom:0.5rem;">Getting started</div>
+        <p>The project began in 2013, shortly after I started working at the Belcourt that July. That fall, I realized the theatre had no records of the films it had shown before switching to ticketing software in 2008 — leaving nearly a century of programming history undocumented.</p>
+        <p style="margin-top:0.75rem;">To fill that gap, I started making trips to the downtown Nashville library, scrolling through old issues of the Tennessean on microfilm and jotting down film titles and dates by hand. A few years later, the Tennessean's archives were digitized and made searchable through Newspapers.com, which made the work considerably faster. I went through the paper week by week, recording each film along with its opening and closing dates. That research forms the foundation of the entire database.</p>
+      </div>
+
+      <div>
+        <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--blue);font-weight:500;margin-bottom:0.5rem;">Enriching the data</div>
+        <p>With a list of film titles and dates in hand, the next step was enriching the data with additional details — director, genre, country of origin, and so on. To do this, I needed to match each title against a database. I chose IMDb.</p>
+        <p style="margin-top:0.75rem;">I wrote a script that matched film titles by both title and release year. For films from the 1960s through the mid-1990s, this was straightforward — nearly everything the Belcourt showed during that era was a new release, so the years lined up cleanly.</p>
+        <p style="margin-top:0.75rem;">Things got more complicated after 1997, when Watkins took over programming and the Belcourt began showing repertory films. A repertory screening creates an ambiguity problem: the year a film played at the Belcourt may have nothing to do with the year it was released. For example, if the archive shows "Taxi Driver" playing in 2021, the obvious assumption is the Martin Scorsese film from 1976 — but IMDb also lists a Korean TV series called Taxi Driver that premiered in 2021. Without additional context, a simple title-and-year match breaks down.</p>
+        <p style="margin-top:0.75rem;">To handle this, I revised the script to surface a list of candidates for manual review rather than making automatic matches. From 2013 onward, I was also able to draw on my own memory, having worked at the Belcourt since that year.</p>
+        <p style="margin-top:0.75rem;">That said, some uncertainty is unavoidable. The film titles and opening/closing dates are the most reliable data in this archive — when in doubt, trust those first.</p>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:1.5rem;">
         <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--blue);font-weight:500;margin-bottom:0.5rem;">What's not included</div>
-        <p>Things not mentioned here: Rental Screenings, Seminars, Film Festivals not associated with the Belcourt (NJFF, BANFF, REEL ROCK).</p>
+        <p>Things that are not present in this database: Plays, Concerts, Seminars, Rental Screenings, Film Festivals not put on by the Belcourt. (NJFF, BANFF, REEL ROCK). I wanted to focus on <i>JUST</i> the films that played at the Belcourt, that <i>we</i> programmed. </p>
       </div>
 
       <div>
@@ -246,6 +263,7 @@ td { padding: 10px 12px; vertical-align: middle; }
       <div style="border-top:1px solid var(--border);padding-top:1.5rem;">
         <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:var(--blue);font-weight:500;margin-bottom:0.5rem;">Catch a mistake?</div>
         <p>Submit it! We'll fix it. Submit the title of the film, the date/year it played, and what the mistake is.</p>
+        <a href="mailto:Keller@belcourt.org?subject=Archive%20correction" style="display:inline-block;margin-top:1rem;padding:9px 20px;background:var(--blue);color:#fff;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;text-decoration:none;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Email a correction →</a>
       </div>
 
     </div>
@@ -285,6 +303,11 @@ td { padding: 10px 12px; vertical-align: middle; }
       <p style="font-size:12px;color:var(--ink-faint);margin-bottom:1.25rem;">Number of <em>distinct</em> films by each director — repeat screenings of the same title count once.</p>
       <div id="directorWrap" style="position:relative;width:100%;"><canvas id="directorChart"></canvas></div>
     </div>
+    <div class="chart-wrap">
+      <div class="chart-title">Most screened female directors</div>
+      <p style="font-size:12px;color:var(--ink-faint);margin-bottom:1.25rem;">Number of distinct films by each director. Click any card to see the full filmography.</p>
+      <div id="femaleDirectorWrap"></div>
+    </div>
   </div>
 </div>
 
@@ -299,7 +322,10 @@ td { padding: 10px 12px; vertical-align: middle; }
     <div id="d-tags" style="display:none;padding:0 1.5rem 1rem;gap:6px;flex-wrap:wrap;"></div>
     <div class="detail-body" id="d-body"></div>
     <div class="detail-foot" style="display:flex;justify-content:space-between;align-items:center;">
-      <a id="d-imdb-link" href="#" target="_blank" style="display:none;font-size:12px;color:var(--blue);text-decoration:none;border:1px solid rgba(74,143,232,0.35);border-radius:4px;padding:6px 14px;" onmouseover="this.style.background='rgba(74,143,232,0.1)'" onmouseout="this.style.background='none'">IMDb ↗</a>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <a id="d-imdb-link" href="#" target="_blank" style="display:none;font-size:12px;color:var(--blue);text-decoration:none;border:1px solid rgba(74,143,232,0.35);border-radius:4px;padding:6px 14px;" onmouseover="this.style.background='rgba(74,143,232,0.1)'" onmouseout="this.style.background='none'">IMDb ↗</a>
+        <a id="d-letterboxd-link" href="#" target="_blank" style="display:none;font-size:12px;color:#00c030;text-decoration:none;border:1px solid rgba(0,192,48,0.35);border-radius:4px;padding:6px 14px;" onmouseover="this.style.background='rgba(0,192,48,0.08)'" onmouseout="this.style.background='none'">Letterboxd ↗</a>
+      </div>
       <button class="btn-close" onclick="closeDetail()">Close</button>
     </div>
   </div>
@@ -632,10 +658,43 @@ function openDetail(idx) {
     imdbLink.style.display = 'none';
   }
 
+  // Letterboxd link — derived from IMDb ID via letterboxd.com/imdb/ttXXXXXXX/
+  const lbLink = document.getElementById('d-letterboxd-link');
+  const imdbIdMatch = IMDB_URLS[id] && IMDB_URLS[id].match(/\/title\/(tt\d+)/);
+  if (imdbIdMatch) {
+    lbLink.href = 'https://letterboxd.com/imdb/' + imdbIdMatch[1] + '/';
+    lbLink.style.display = 'inline-block';
+  } else {
+    lbLink.style.display = 'none';
+  }
+
   document.getElementById('overlay').classList.add('open');
 }
 
 function closeDetail() { document.getElementById('overlay').classList.remove('open'); }
+
+// Vertical crosshair plugin — applies to all line charts
+Chart.register({
+  id: 'verticalCrosshair',
+  afterDraw(chart) {
+    if (chart.config.type !== 'line') return;
+    if (!chart.tooltip._active || !chart.tooltip._active.length) return;
+    const ctx = chart.ctx;
+    const x = chart.tooltip._active[0].element.x;
+    const topY = chart.scales.y.top;
+    const bottomY = chart.scales.y.bottom;
+    const light = document.documentElement.classList.contains('light');
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x, topY);
+    ctx.lineTo(x, bottomY);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = light ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.28)';
+    ctx.setLineDash([3, 3]);
+    ctx.stroke();
+    ctx.restore();
+  }
+});
 
 // STATS
 function renderStats() {
@@ -646,21 +705,28 @@ function renderStats() {
   const avg = Math.round(withRun.reduce((s,f)=>s+f.r,0)/withRun.length);
   const longest = [...withRun].sort((a,b)=>b.r-a.r)[0];
   const silents = ALL.filter(f=>f.cat==='Silent Film').length;
+  const lostSilents = ALL.filter(f=>
+    f.cat==='Silent Film' && (
+      f.lost === true ||
+      (f.n && /\blost\b/i.test(f.n))
+    )
+  ).length;
   const withSeries = ALL.filter(f=>f.s&&f.s.trim()).length;
 
   // Count unique countries
   const allCountries = new Set();
   ALL.forEach(f=>{ if(f.country) f.country.split(/[,/]/).forEach(c=>{ const t=c.trim(); if(t) allCountries.add(t); }); });
 
-  const cardAccents = ['#4a8fe8','#e8a23a','#3dba7a','#c45c8a','#7c5ce8','#3abbb8','#e86c4a'];
+  const cardAccents = ['#4a8fe8','#e8a23a','#3dba7a','#c45c8a','#7c5ce8','#3abbb8','#e86c4a','#b87ab0'];
   const cardData = [
-    ['Total films',          ALL.length.toLocaleString(), null,                       cardAccents[0]],
-    ['Silent films',         silents,                     null,                       cardAccents[1]],
-    ['Years of history',     101,                         '1925–2026',                cardAccents[2]],
-    ['Average run',          avg,                         'days',                     cardAccents[3]],
-    ['Longest run',          longest.r,                   longest.t+' ('+longest.y+')', cardAccents[4]],
-    ['Part of a series',     withSeries.toLocaleString(), null,                       cardAccents[5]],
-    ['Countries represented',allCountries.size,           null,                       cardAccents[6]],
+    ['Total films',           ALL.length.toLocaleString(), null,                          cardAccents[0]],
+    ['Silent films',          silents,                     null,                          cardAccents[1]],
+    ['Lost silent films',     lostSilents,                 'considered lost',             cardAccents[7]],
+    ['Years of history',      101,                         '1925–2026',                   cardAccents[2]],
+    ['Average run',           avg,                         'days',                        cardAccents[3]],
+    ['Longest run',           longest.r,                   longest.t+' ('+longest.y+')', cardAccents[4]],
+    ['Part of a series',      withSeries.toLocaleString(), null,                          cardAccents[5]],
+    ['Countries represented', allCountries.size,           null,                          cardAccents[6]],
   ];
   document.getElementById('stats-grid').innerHTML = cardData.map(([label, val, sub, accent]) => `
     <div class="stat-card" style="border-top:3px solid ${accent};">
@@ -702,6 +768,7 @@ function renderStats() {
       pointHoverBackgroundColor:'rgba(74,143,232,1)'
     }] },
     options:{ responsive:true, maintainAspectRatio:false, events:['mousemove','mouseout','click','touchstart','touchmove'],
+      interaction:{ mode:'index', intersect:false },
       plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+' films'}}},
       scales:{ x:{ticks:{font:{size:10},color:tickCol,autoSkip:true,maxTicksLimit:25,maxRotation:45},grid:{display:false}}, y:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}} } }
   });
@@ -765,8 +832,8 @@ function renderStats() {
     new Chart(document.getElementById('repeatChart'), {
       type:'bar',
       data:{ labels:topR.map(e=>e.label), datasets:[{ data:topR.map(e=>e.count), backgroundColor:topR.map((_,i)=>`rgba(232,108,74,${(1-(i/Math.max(topR.length-1,1))*0.72).toFixed(2)})`), borderColor:topR.map((_,i)=>`rgba(232,108,74,${(1-(i/Math.max(topR.length-1,1))*0.6).toFixed(2)})`), borderWidth:1 }] },
-      options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, events:['click'],
-        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+' run'+(c.raw===1?'':'s')}}},
+      options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, events:['mousemove','mouseout','click','touchstart','touchmove'],
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+' total run'+(c.raw===1?'':'s')}}},
         scales:{ x:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:11},color:yTickCol},grid:{display:false}} } }
     });
   } else {
@@ -774,9 +841,10 @@ function renderStats() {
   }
 
   // --- Genre helpers ---
+  const GENRE_NORM = { 'Action': 'Action/Adventure', 'Adventure': 'Action/Adventure' };
   function parseGenres(f) {
     if(!f.genre) return [];
-    return f.genre.split(/[,/]/).map(g=>g.trim()).filter(Boolean);
+    return [...new Set(f.genre.split(/[,/]/).map(g => GENRE_NORM[g.trim()] || g.trim()).filter(Boolean))];
   }
 
   // --- Genre helpers ---
@@ -805,7 +873,6 @@ function renderStats() {
   ];
 
   const gdWrap = document.getElementById('genreDecadeWrap');
-  gdWrap.style.cssText = 'display:grid;grid-template-columns:repeat(2,1fr);gap:10px;';
   gdWrap.innerHTML = '';
 
   top8genres.forEach((genre, i) => {
@@ -830,7 +897,7 @@ function renderStats() {
     cell.appendChild(lbl);
 
     const chartBox = document.createElement('div');
-    chartBox.style.cssText = 'position:relative;height:110px;';
+    chartBox.style.cssText = 'position:relative;height:200px;';
     const canvas = document.createElement('canvas');
     chartBox.appendChild(canvas);
     cell.appendChild(chartBox);
@@ -856,6 +923,7 @@ function renderStats() {
       options:{
         responsive:true, maintainAspectRatio:false,
         events:['mousemove','mouseout','touchstart','touchmove'],
+        interaction:{ mode:'index', intersect:false },
         plugins:{
           legend:{display:false},
           tooltip:{
@@ -1001,12 +1069,98 @@ function renderStats() {
   } else {
     document.getElementById('directorWrap').innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No director data found in this archive file.</p>';
   }
+
+  // Most screened female directors
+  const FEMALE_DIRECTORS = new Set([
+    // Pioneers & classic era
+    'Alice Guy-Blaché','Lois Weber','Dorothy Arzner','Ida Lupino','Maya Deren',
+    'Shirley Clarke','Barbara Loden','Elaine May','Joan Micklin Silver','Claudia Weill',
+    'Donna Deitch','Lizzie Borden','Yvonne Rainer','Su Friedrich',
+    // American — modern & contemporary
+    'Sofia Coppola','Greta Gerwig','Kathryn Bigelow','Kelly Reichardt','Chloé Zhao',
+    'Dee Rees','Ava DuVernay','Nicole Holofcener','Tamara Jenkins','Marielle Heller',
+    'Eliza Hittman','Debra Granik','Miranda July','Karyn Kusama','Mary Harron',
+    'Kasi Lemmons','Julie Taymor','Lisa Cholodenko','Rebecca Miller','Josephine Decker',
+    'Lulu Wang','Desiree Akhavan','Janicza Bravo','Kitty Green','Kimberly Peirce',
+    'Catherine Hardwicke','Nora Ephron','Penny Marshall','Amy Heckerling','Nancy Meyers',
+    'Patty Jenkins','Susan Seidelman','Martha Coolidge','Penelope Spheeris',
+    'Barbara Kopple','Julie Dash','Allison Anders','Rose Troche','Crystal Moselle',
+    'Reed Morano','Kirsten Johnson','Sara Dosa','Alma Har\'el','Mimi Leder',
+    // French & Belgian
+    'Agnès Varda','Claire Denis','Céline Sciamma','Mati Diop','Catherine Breillat',
+    'Diane Kurys','Maïwenn','Justine Triet','Julia Ducournau','Chantal Akerman',
+    'Lucile Hadzihalilovic','Rebecca Zlotowski','Emmanuelle Bercot','Yamina Benguigui',
+    // British & Irish
+    'Lynne Ramsay','Andrea Arnold','Joanna Hogg','Phyllida Lloyd','Sam Taylor-Johnson',
+    'Clio Barnard','Carol Morley','Gurinder Chadha','Amma Asante','Lone Scherfig',
+    'Mona Achache',
+    // German, Austrian & Swiss
+    'Margarethe von Trotta','Doris Dörrie','Monika Treut','Helke Sander',
+    'Helma Sanders-Brahms','Maren Ade','Valeska Grisebach','Angela Schanelec',
+    'Ursula Meier',
+    // Eastern European
+    'Věra Chytilová','Vera Chytilova','Márta Mészáros','Marta Meszaros',
+    'Agnieszka Holland','Małgorzata Szumowska',
+    // Scandinavian
+    'Susanne Bier','Liv Ullmann','May El-Toukhy','Lisa Langseth',
+    // Italian & Spanish
+    'Lina Wertmüller','Isabel Coixet','Icíar Bollaín','Pilar Miró',
+    // Latin American
+    'Lucrecia Martel','Claudia Llosa','María Novaro','Fernanda Valadez','Lucía Puenzo',
+    // Middle Eastern & North African
+    'Nadine Labaki','Haifaa al-Mansour','Maryam Touzani',
+    // African
+    'Wanuri Kahiu',
+    // South Asian
+    'Mira Nair','Deepa Mehta','Aparna Sen','Meghna Gulzar','Zoya Akhtar',
+    // East Asian
+    'Naomi Kawase','Yuki Tanada',
+    // Australian & New Zealand
+    'Jane Campion','Gillian Armstrong',
+    // Canadian
+    'Alanis Obomsawin','Anne Wheeler','Sarah Polley',
+    // Soviet & Russian
+    'Larisa Shepitko','Kira Muratova',
+  ]);
+
+  const topFemale = Object.entries(dc2)
+    .filter(([name]) => FEMALE_DIRECTORS.has(name))
+    .sort((a,b) => b[1]-a[1])
+    .slice(0,25);
+  window.TOP_FEMALE_DIRECTORS = topFemale;
+
+  const femWrap = document.getElementById('femaleDirectorWrap');
+  if (topFemale.length) {
+    femWrap.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;">
+        ${topFemale.map(([name, count], i) => {
+          const color = DIR_CARD_COLORS[i % DIR_CARD_COLORS.length];
+          const initials = name.split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+          const preview = (dirFilmsSorted[name]||[]).slice(0,3).map(f=>f.title.length>28?f.title.slice(0,28)+'…':f.title);
+          return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px 12px;display:flex;flex-direction:column;gap:8px;transition:border-color 0.15s;cursor:pointer;" onclick="openFemaleDirectorModal(${i})" onmouseover="this.style.borderColor='${color}55'" onmouseout="this.style.borderColor='var(--border)'">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:40px;height:40px;border-radius:50%;background:${color}1a;border:2px solid ${color}44;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <span style="font-size:13px;font-weight:600;color:${color};font-family:'DM Sans',sans-serif;">${initials}</span>
+              </div>
+              <div style="min-width:0;">
+                <div style="font-size:13px;font-weight:500;color:var(--ink);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
+                <div style="font-size:11px;color:${color};margin-top:2px;font-weight:500;">${count} film${count===1?'':'s'}</div>
+              </div>
+            </div>
+            ${preview.length ? `<div style="font-size:11px;color:var(--ink-faint);line-height:1.6;border-top:1px solid var(--border);padding-top:7px;">${preview.join('<br>')}<br><span style="color:${color};font-size:10px;letter-spacing:0.04em;">View all →</span></div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>`;
+  } else {
+    femWrap.innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No female directors found in this archive file. Director data may not be loaded.</p>';
+  }
 }
 
-function openDirectorModal(i) {
-  const [name, count] = window.TOP_DIRECTORS[i];
+const DIR_MODAL_COLORS = ['#4a8fe8','#e8a23a','#3dba7a','#c45c8a','#7c5ce8','#3abbb8','#e86c4a','#2d7abf','#b87ab0','#7ab87a'];
+
+function _showDirectorModal(name, count, colorIndex) {
   const films = window.DIRECTOR_FILMS[name] || [];
-  const color = ['#4a8fe8','#e8a23a','#3dba7a','#c45c8a','#7c5ce8','#3abbb8','#e86c4a','#2d7abf','#b87ab0','#7ab87a'][i % 10];
+  const color = DIR_MODAL_COLORS[colorIndex % 10];
   const initials = name.split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
 
   const av = document.getElementById('dm-avatar');
@@ -1046,6 +1200,16 @@ function openDirectorModal(i) {
     </table>` : '<p style="font-size:13px;color:var(--ink-faint);padding:1rem 0;">No film data available.</p>';
 
   document.getElementById('director-overlay').classList.add('open');
+}
+
+function openDirectorModal(i) {
+  const [name, count] = window.TOP_DIRECTORS[i];
+  _showDirectorModal(name, count, i);
+}
+
+function openFemaleDirectorModal(i) {
+  const [name, count] = window.TOP_FEMALE_DIRECTORS[i];
+  _showDirectorModal(name, count, i);
 }
 
 function closeDirectorModal() {
