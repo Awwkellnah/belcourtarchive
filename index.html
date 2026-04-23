@@ -257,9 +257,9 @@ td { padding: 10px 12px; vertical-align: middle; }
       </div>
 
       <div style="border-top:1px solid var(--border);padding-top:1.5rem;">
-        <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--blue);font-weight:500;margin-bottom:0.5rem;">Catch a mistake?</div>
-        <p>Submit it! We'll fix it. Submit the title of the film, the date/year it played, and what the mistake is.</p>
-        <a href="mailto:Keller@belcourt.org?subject=Archive%20correction" style="display:inline-block;margin-top:1rem;padding:9px 20px;background:var(--blue);color:#fff;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;text-decoration:none;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Email a correction →</a>
+        <div style="font-size:14px;letter-spacing:0.14em;text-transform:uppercase;color:var(--blue);font-weight:500;margin-bottom:0.5rem;">Have a question/comment, or catch a mistake?</div>
+        <p>Reach out! We'd love to hear your feedback. If it's regarding a mistake or correction, be sure to include the title of the film, the date/year it played.</p>
+        <a href="mailto:Keller@belcourt.org?subject=Archive%20correction" style="display:inline-block;margin-top:1rem;padding:9px 20px;background:var(--blue);color:#fff;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;text-decoration:none;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Submit feedback →</a>
       </div>
 
     </div>
@@ -282,18 +282,18 @@ td { padding: 10px 12px; vertical-align: middle; }
     </div>
     <div class="chart-wrap">
       <div class="chart-title">Most repeated viewings</div>
-      <p style="font-size:12px;color:var(--ink-faint);margin-bottom:1.25rem;">Films with the most separate runs at the Belcourt.</p>
+      <p style="font-size:14px;color:var(--ink-faint);margin-bottom:1.25rem;">Films with the most separate runs at the Belcourt.</p>
       <div id="repeatWrap" style="position:relative;width:100%;"><canvas id="repeatChart"></canvas></div>
     </div>
     <div class="chart-wrap">
       <div class="chart-title">Genre trends over time</div>
-      <p style="font-size:12px;color:var(--ink-faint);margin-bottom:1.25rem;">Each panel shows what percentage of Belcourt programming belonged to that genre, by year.</p>
+      <p style="font-size:14px;color:var(--ink-faint);margin-bottom:1.25rem;">Each panel shows what percentage of Belcourt programming belonged to that genre, by year.</p>
       <div id="genreDecadeWrap"></div>
     </div>
     <div class="chart-wrap">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem;">
         <div class="chart-title" style="margin-bottom:0;">Films by country of origin</div>
-        <select id="countryYearFilter" onchange="renderCountryChart()" style="font-size:12px;padding:6px 24px 6px 10px;">
+        <select id="countryYearFilter" onchange="renderCountryChart()" style="font-size:14px;padding:6px 24px 6px 10px;">
           <option value="all">All years</option>
           <option value="1925">1925–1949</option>
           <option value="1960">1960s</option>
@@ -309,13 +309,12 @@ td { padding: 10px 12px; vertical-align: middle; }
     </div>
     <div class="chart-wrap">
       <div class="chart-title">Most screened directors</div>
-      <p style="font-size:12px;color:var(--ink-faint);margin-bottom:1.25rem;">Number of <em>distinct</em> films by each director — repeat screenings of the same title count once.</p>
+      <p style="font-size:14px;color:var(--ink-faint);margin-bottom:1.25rem;">Number of <em>distinct</em> films by each director that have played at the Belcourt — repeat screenings of the same title count once.</p><p style="font-size:14px;color:var(--ink-faint);margin-bottom:1.25rem;">Click any card to view which of their films have been screened at the Belcourt.</p>
       <div id="directorWrap" style="position:relative;width:100%;"><canvas id="directorChart"></canvas></div>
     </div>
     <div class="chart-wrap">
       <div class="chart-title">Most screened female directors</div>
-      <p style="font-size:12px;color:var(--ink-faint);margin-bottom:1.25rem;">Number of distinct films by each director. Click any card to see the full filmography.</p>
-      <div id="femaleDirectorWrap"></div>
+      <p style="font-size:14px;color:var(--ink-faint);margin-bottom:1.25rem;">Number of <em>distinct</em> films by each director that have played at the Belcourt — repeat screenings of the same title count once.</p><p style="font-size:14px;color:var(--ink-faint);margin-bottom:1.25rem;">Click any card to view which of their films have been screened at the Belcourt.</p>      <div id="femaleDirectorWrap"></div>
     </div>
   </div>
 </div>
@@ -780,7 +779,7 @@ function renderStats() {
 
   // Films per decade — vertical bar chart
   const dc = {};
-  ALL.forEach(f=>{ if(f.y){ const d=Math.floor(f.y/10)*10; dc[d]=(dc[d]||0)+1; } });
+  ALL.forEach(f=>{ if(f.y&&f.y>=1900){ const d=Math.floor(f.y/10)*10; dc[d]=(dc[d]||0)+1; } });
   const ds = Object.keys(dc).sort();
   new Chart(document.getElementById('decadeChart'), {
     type:'bar',
