@@ -138,10 +138,10 @@ td { padding: 10px 12px; vertical-align: middle; }
 .chart-title { font-family: 'Playfair Display', serif; font-size: 18px; font-weight: 400; color: var(--ink); margin-bottom: 1.25rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
 
 /* DETAIL OVERLAY */
-.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 100; align-items: center; justify-content: center; padding: 1rem; }
+.overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 100; align-items: center; justify-content: center; padding: 1rem 1rem max(1rem, env(safe-area-inset-bottom)) 1rem; }
 .overlay.open { display: flex; }
 .detail { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; width: 100%; max-width: 580px; max-height: 88vh; overflow-y: auto; }
-.detail-head { padding: 1.5rem; border-bottom: 1px solid var(--border); }
+.detail-head { padding: 1.5rem 3.5rem 1.5rem 1.5rem; border-bottom: 1px solid var(--border); position: relative; }
 .detail-title { font-family: 'Playfair Display', serif; font-size: 22px; font-weight: 400; color: var(--ink); line-height: 1.2; margin-bottom: 4px; }
 .detail-sub { font-size: 13px; color: var(--ink-faint); }
 .detail-body { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem 1.5rem; padding: 1.25rem 1.5rem; }
@@ -153,6 +153,8 @@ td { padding: 10px 12px; vertical-align: middle; }
 .detail-foot { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; }
 .btn-close { background: none; border: 1px solid var(--border); border-radius: 4px; padding: 7px 18px; font-family: 'DM Sans', sans-serif; font-size: 12px; color: var(--ink-faint); cursor: pointer; transition: border-color 0.1s, color 0.1s; }
 .btn-close:hover { border-color: var(--border-hover); color: var(--ink); }
+.btn-x { position: absolute; top: 1rem; right: 1rem; width: 32px; height: 32px; background: none; border: 1px solid var(--border); border-radius: 50%; font-size: 18px; line-height: 1; color: var(--ink-faint); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: border-color 0.1s, color 0.1s; padding: 0; }
+.btn-x:hover { border-color: var(--border-hover); color: var(--ink); }
 
 .hidden { display: none !important; }
 </style>
@@ -298,6 +300,11 @@ td { padding: 10px 12px; vertical-align: middle; }
       <div id="genreDecadeWrap"></div>
     </div>
     <div class="chart-wrap">
+      <div class="chart-title">Repertory vs. new release by year</div>
+      <p style="font-size:14px;color:var(--ink-faint);margin-bottom:1.25rem;">Percentage of each year's programming that was repertory (4+ years old at time of screening) vs. new release. Films from 2000 onwards only.</p>
+      <div style="position:relative;height:220px;width:100%;"><canvas id="repertoryTrendChart"></canvas></div>
+    </div>
+    <div class="chart-wrap">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem;">
         <div class="chart-title" style="margin-bottom:0;">Films by country of origin</div>
         <select id="countryYearFilter" onchange="renderCountryChart()" style="font-size:14px;padding:6px 24px 6px 10px;">
@@ -315,6 +322,26 @@ td { padding: 10px 12px; vertical-align: middle; }
       <div id="countryWrap" style="position:relative;width:100%;"></div>
     </div>
     <div class="chart-wrap">
+      <div class="chart-title">MPAA rating breakdown</div>
+      <p style="font-size:14px;color:var(--ink-faint);margin-bottom:1.25rem;">Distribution of content ratings across all films with IMDb data.</p>
+      <div id="mpaaWrap" style="position:relative;width:100%;"></div>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">Top 15 languages</div>
+      <p style="font-size:14px;color:var(--ink-faint);margin-bottom:1.25rem;">Films are counted under each language they were made in. English-language films are included for scale.</p>
+      <div id="languageWrap" style="position:relative;width:100%;"></div>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">Runtime distribution</div>
+      <p style="font-size:14px;color:var(--ink-faint);margin-bottom:1.25rem;">How long are the films screened at the Belcourt?</p>
+      <div style="position:relative;height:220px;width:100%;"><canvas id="runtimeDistChart"></canvas></div>
+    </div>
+    <div class="chart-wrap">
+      <div class="chart-title">Age at screening</div>
+      <p style="font-size:14px;color:var(--ink-faint);margin-bottom:1.25rem;">How old were films when they screened at the Belcourt, based on IMDb release year?</p>
+      <div style="position:relative;height:220px;width:100%;"><canvas id="ageAtScreeningChart"></canvas></div>
+    </div>
+    <div class="chart-wrap">
       <div class="chart-title">Most screened directors</div>
       <p style="font-size:14px;color:var(--ink-faint);margin-bottom:1.25rem;">Number of <em>distinct</em> films by each director that have played at the Belcourt — repeat screenings of the same title count once.</p><p style="font-size:14px;color:var(--ink-faint);margin-bottom:1.25rem;">Click any card to view which of their films have been screened at the Belcourt.</p>
       <div id="directorWrap" style="position:relative;width:100%;"><canvas id="directorChart"></canvas></div>
@@ -330,6 +357,7 @@ td { padding: 10px 12px; vertical-align: middle; }
 <div class="overlay" id="overlay" onclick="if(event.target===this)closeDetail()">
   <div class="detail">
     <div class="detail-head">
+      <button class="btn-x" onclick="closeDetail()" aria-label="Close">×</button>
       <div class="detail-title" id="d-title"></div>
       <div class="detail-sub" id="d-sub"></div>
       <div id="d-tags" style="display:none;margin-top:10px;gap:6px;flex-wrap:wrap;"></div>
@@ -350,6 +378,7 @@ td { padding: 10px 12px; vertical-align: middle; }
 <div class="overlay" id="director-overlay" onclick="if(event.target===this)closeDirectorModal()">
   <div class="detail" style="max-width:640px;">
     <div class="detail-head" style="display:flex;align-items:center;gap:14px;">
+      <button class="btn-x" onclick="closeDirectorModal()" aria-label="Close">×</button>
       <div id="dm-avatar" style="width:48px;height:48px;border-radius:50%;border:2px solid transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
         <span id="dm-initials" style="font-size:16px;font-weight:600;font-family:'DM Sans',sans-serif;"></span>
       </div>
@@ -397,6 +426,8 @@ let IMDB_URLS      = {};
 let IMDB_YEAR      = {};
 let IMDB_GENRE     = {};
 let IMDB_COUNTRY   = {};
+let IMDB_LANGUAGE  = {};
+let IMDB_RATED     = {};
 
 let filtered = [], page = 1, sortKey = 'o', sortDir = -1;
 const PER = 50;
@@ -413,7 +444,7 @@ function processData(data) {
     });
     IMDB_TITLES = {}; IMDB_POSTERS = {}; IMDB_DIRECTORS = {};
     IMDB_RATINGS = {}; IMDB_RUNTIME = {}; IMDB_PLOT = {};
-    IMDB_URLS = {}; IMDB_YEAR = {}; IMDB_GENRE = {}; IMDB_COUNTRY = {};
+    IMDB_URLS = {}; IMDB_YEAR = {}; IMDB_GENRE = {}; IMDB_COUNTRY = {}; IMDB_LANGUAGE = {}; IMDB_RATED = {};
     const mergedResults = Object.assign({}, data.preloadedResults || {}, data.results || {});
     Object.entries(mergedResults).forEach(function(entry) {
       const id = entry[0], r = entry[1];
@@ -430,6 +461,8 @@ function processData(data) {
       if (nna(d.year))       IMDB_YEAR[id]      = d.year;
       if (nna(d.genre))      IMDB_GENRE[id]     = d.genre;
       if (nna(d.country))    IMDB_COUNTRY[id]   = d.country;
+      if (nna(d.language))   IMDB_LANGUAGE[id]  = d.language;
+      if (nna(d.rated))      IMDB_RATED[id]     = d.rated;
       if (nna(d.imdbID))     IMDB_URLS[id] = IMDB_URLS[id] || ('https://www.imdb.com/title/'+d.imdbID+'/');
     });
   } else if (Array.isArray(data)) {
@@ -728,16 +761,30 @@ function renderStats() {
   const allCountries = new Set();
   ALL.forEach(f=>{ if(f.country) f.country.split(/[,/]/).forEach(c=>{ const t=c.trim(); if(t) allCountries.add(t); }); });
 
+  // Count unique languages
+  const allLanguages = new Set();
+  ALL.forEach(f=>{ const l=IMDB_LANGUAGE[String(f.id)]; if(l) l.split(',').forEach(x=>{ const t=x.trim(); if(t&&t!=='None') allLanguages.add(t); }); });
+
+  // Average IMDb rating
+  const ratedFilms = ALL.filter(f=>IMDB_RATINGS[String(f.id)]);
+  const avgImdbRating = ratedFilms.length ? (ratedFilms.reduce((s,f)=>s+parseFloat(IMDB_RATINGS[String(f.id)]),0)/ratedFilms.length).toFixed(1) : null;
+
+  // Average runtime
+  const runtimeFilms = ALL.filter(f=>{ const r=parseInt(IMDB_RUNTIME[String(f.id)]); return r>0&&r<400; });
+  const avgRuntimeMins = runtimeFilms.length ? Math.round(runtimeFilms.reduce((s,f)=>s+parseInt(IMDB_RUNTIME[String(f.id)]),0)/runtimeFilms.length) : null;
+
   const cardAccents = ['#4a8fe8','#e8a23a','#3dba7a','#c45c8a','#7c5ce8','#3abbb8','#e86c4a','#b87ab0'];
   const cardData = [
     ['Total films',           ALL.length.toLocaleString(), null,                          cardAccents[0]],
+    ['Years of history',      101,                         '1925–2026',                   cardAccents[2]],
     ['Silent films',          silents,                     null,                          cardAccents[1]],
     ['Lost silent films',     lostSilents,                 'considered lost',             cardAccents[7]],
-    ['Years of history',      101,                         '1925–2026',                   cardAccents[2]],
     ['Average run',           avg,                         'days',                        cardAccents[3]],
     ['Longest run',           longest.r,                   longest.t+' ('+longest.y+')', cardAccents[4]],
    // ['Part of a series',      withSeries.toLocaleString(), null,                          cardAccents[5]],
     ['Countries represented', allCountries.size,           null,                          cardAccents[6]],
+    ['Languages',             allLanguages.size,           null,                          cardAccents[5]],
+    ...(avgRuntimeMins ? [['Avg runtime',        avgRuntimeMins,              'minutes',                     cardAccents[2]]] : []),
   ];
   document.getElementById('stats-grid').innerHTML = cardData.map(([label, val, sub, accent]) => `
     <div class="stat-card" style="border-top:3px solid ${accent};">
@@ -824,7 +871,6 @@ function renderStats() {
       }}}},
       scales:{ x:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:11},color:yTickCol},grid:{display:false}} } }
   });
-
 
   // Most repeated viewings — group by resolved display title, count entries
   const rc = {};
@@ -986,6 +1032,36 @@ function renderStats() {
     'Kenya':'🇰🇪','Ghana':'🇬🇭','Ethiopia':'🇪🇹',
     'Peru':'🇵🇪','Venezuela':'🇻🇪','Uruguay':'🇺🇾','Bolivia':'🇧🇴',
   };
+  // Repertory vs. new release by year (2000+)
+  const repByYear = {};
+  ALL.forEach(f => {
+    if (!f.y || f.y < 2000 || f.repertory === null || f.repertory === undefined) return;
+    if (!repByYear[f.y]) repByYear[f.y] = { rep: 0, nr: 0 };
+    if (f.repertory === true) repByYear[f.y].rep++; else repByYear[f.y].nr++;
+  });
+  const repYears = Object.keys(repByYear).map(Number).filter(yr => repByYear[yr].rep + repByYear[yr].nr >= 3).sort((a,b) => a-b);
+  new Chart(document.getElementById('repertoryTrendChart'), {
+    type: 'bar',
+    data: {
+      labels: repYears,
+      datasets: [
+        { label: 'Repertory', data: repYears.map(yr => { const d=repByYear[yr]; return parseFloat((d.rep/(d.rep+d.nr)*100).toFixed(1)); }), backgroundColor: 'rgba(124,92,232,0.75)', borderWidth: 0 },
+        { label: 'New release', data: repYears.map(yr => { const d=repByYear[yr]; return parseFloat((d.nr/(d.rep+d.nr)*100).toFixed(1)); }), backgroundColor: 'rgba(74,143,232,0.75)', borderWidth: 0 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: true, position: 'top', labels: { font: { size: 11 }, color: yTickCol, boxWidth: 12 } },
+        tooltip: { callbacks: { label: c => c.dataset.label + ': ' + c.raw + '%' } }
+      },
+      scales: {
+        x: { stacked: true, ticks: { font: { size: 10 }, color: tickCol }, grid: { color: gridCol } },
+        y: { stacked: true, min: 0, max: 100, ticks: { font: { size: 10 }, color: tickCol, callback: v => v + '%' }, grid: { color: gridCol } }
+      }
+    }
+  });
+
   window.renderCountryChart = function() {
     const sel = document.getElementById('countryYearFilter');
     const val = sel ? sel.value : 'all';
@@ -1027,6 +1103,78 @@ function renderStats() {
       </div>` : `<div style="padding:2rem;text-align:center;color:var(--ink-faint);font-size:13px;">No data for this period.</div>`;
   };
   renderCountryChart();
+
+  // MPAA rating breakdown
+  const mpaaOrder=['G','PG','PG-13','R','NC-17','NR'];
+  const mpaaCounts={};
+  ALL.forEach(f=>{ let rated=IMDB_RATED[String(f.id)]; if(!rated) return; if(rated==='Not Rated'||rated==='Unrated') rated='NR'; if(!mpaaOrder.includes(rated)) return; mpaaCounts[rated]=(mpaaCounts[rated]||0)+1; });
+  const mpaaEntries=Object.entries(mpaaCounts).sort((a,b)=>mpaaOrder.indexOf(a[0])-mpaaOrder.indexOf(b[0]));
+  const mpaaWrap=document.getElementById('mpaaWrap');
+  if(mpaaEntries.length){
+    mpaaWrap.style.height=Math.max(mpaaEntries.length*26+60,120)+'px';
+    const mpaaCanvas=document.createElement('canvas'); mpaaWrap.appendChild(mpaaCanvas);
+    const mpaaColors={'G':'rgba(61,186,122,0.75)','PG':'rgba(74,143,232,0.75)','PG-13':'rgba(232,162,58,0.75)','R':'rgba(196,92,138,0.75)','NC-17':'rgba(232,108,74,0.75)','NR':'rgba(124,92,232,0.75)','Passed':'rgba(58,187,184,0.75)','Approved':'rgba(184,122,176,0.75)'};
+    new Chart(mpaaCanvas,{
+      type:'bar',
+      data:{ labels:mpaaEntries.map(e=>e[0]), datasets:[{data:mpaaEntries.map(e=>e[1]), backgroundColor:mpaaEntries.map(e=>mpaaColors[e[0]]||'rgba(150,150,150,0.6)'), borderWidth:0}] },
+      options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toLocaleString()+' film'+(c.raw===1?'':'s')}}},
+        scales:{ x:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:11},color:yTickCol},grid:{display:false}} } }
+    });
+  } else { mpaaWrap.innerHTML='<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No MPAA rating data found.</p>'; }
+
+  // Top 15 languages
+  const langCount = {};
+  ALL.forEach(f => {
+    const lang = IMDB_LANGUAGE[String(f.id)];
+    if (!lang) return;
+    lang.split(',').forEach(l => {
+      const name = l.trim();
+      if (name && name !== 'None') langCount[name] = (langCount[name] || 0) + 1;
+    });
+  });
+  const topLangs = Object.entries(langCount).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  const langWrap = document.getElementById('languageWrap');
+  if (topLangs.length) {
+    langWrap.style.height = Math.max(topLangs.length * 26 + 60, 160) + 'px';
+    const langCanvas = document.createElement('canvas');
+    langWrap.appendChild(langCanvas);
+    new Chart(langCanvas, {
+      type: 'bar',
+      data: {
+        labels: topLangs.map(e => e[0]),
+        datasets: [{ data: topLangs.map(e => e[1]), backgroundColor: topLangs.map((_,i) => `rgba(74,143,232,${(1-(i/Math.max(topLangs.length-1,1))*0.72).toFixed(2)})`), borderColor: topLangs.map((_,i) => `rgba(74,143,232,${(1-(i/Math.max(topLangs.length-1,1))*0.6).toFixed(2)})`), borderWidth: 1 }]
+      },
+      options: {
+        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw.toLocaleString() + ' film' + (c.raw === 1 ? '' : 's') } } },
+        scales: { x: { ticks: { font: { size: 10 }, color: tickCol }, grid: { color: gridCol } }, y: { ticks: { font: { size: 11 }, color: yTickCol }, grid: { display: false } } }
+      }
+    });
+  } else {
+    langWrap.innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No language data found in this archive file.</p>';
+  }
+
+  // Runtime distribution
+  const rtBuckets=[{label:'Under 60 min',min:0,max:60},{label:'60–89 min',min:60,max:90},{label:'90–104 min',min:90,max:105},{label:'105–119 min',min:105,max:120},{label:'120–149 min',min:120,max:150},{label:'150+ min',min:150,max:Infinity}];
+  const rtCounts=rtBuckets.map(()=>0);
+  ALL.forEach(f=>{ const rt=parseInt(IMDB_RUNTIME[String(f.id)]); if(!rt||rt<=0||rt>600) return; const i=rtBuckets.findIndex(b=>rt>=b.min&&rt<b.max); if(i!==-1) rtCounts[i]++; });
+  new Chart(document.getElementById('runtimeDistChart'),{
+    type:'bar',
+    data:{ labels:rtBuckets.map(b=>b.label), datasets:[{data:rtCounts, backgroundColor:'rgba(61,186,122,0.70)', borderColor:'rgba(61,186,122,1)', borderWidth:1}] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toLocaleString()+' film'+(c.raw===1?'':'s')}}},
+      scales:{ x:{ticks:{font:{size:11},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}} } }
+  });
+
+  // Age at screening
+  const ageBuckets=[{label:'New (0–1 yr)',min:0,max:2},{label:'2–3 years',min:2,max:4},{label:'4–9 years',min:4,max:10},{label:'10–19 years',min:10,max:20},{label:'20–29 years',min:20,max:30},{label:'30–49 years',min:30,max:50},{label:'50+ years',min:50,max:Infinity}];
+  const ageCounts=ageBuckets.map(()=>0);
+  ALL.forEach(f=>{ if(!f.y) return; const imdbYr=parseInt(IMDB_YEAR[String(f.id)]); if(!imdbYr) return; const gap=f.y-imdbYr; if(gap<0||gap>200) return; const i=ageBuckets.findIndex(b=>gap>=b.min&&gap<b.max); if(i!==-1) ageCounts[i]++; });
+  new Chart(document.getElementById('ageAtScreeningChart'),{
+    type:'bar',
+    data:{ labels:ageBuckets.map(b=>b.label), datasets:[{data:ageCounts, backgroundColor:'rgba(232,108,74,0.70)', borderColor:'rgba(232,108,74,1)', borderWidth:1}] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toLocaleString()+' film'+(c.raw===1?'':'s')}}},
+      scales:{ x:{ticks:{font:{size:11},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}} } }
+  });
 
   // Most screened directors — card grid (top 20, unique titles only)
   const dirFilmMap = {}; // director -> { normTitle -> { title, releaseYear, rating, runs } }
