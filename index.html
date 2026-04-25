@@ -286,8 +286,21 @@ td { padding: 10px 12px; vertical-align: middle; }
       <div style="position:relative;height:180px;width:100%;"><canvas id="decadeChart"></canvas></div>
     </div>
     <div class="chart-wrap">
-      <div class="chart-title">Top 15 longest runs</div>
-      <div id="runWrap" style="position:relative;width:100%;"><canvas id="runChart"></canvas></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem;">
+        <div class="chart-title" style="margin-bottom:0;">Top 15 longest runs</div>
+        <select id="runDecadeFilter" onchange="renderRunChart()" style="font-size:14px;padding:6px 24px 6px 10px;">
+          <option value="all">All years</option>
+          <option value="1925">1925–1949</option>
+          <option value="1960">1960s</option>
+          <option value="1970">1970s</option>
+          <option value="1980">1980s</option>
+          <option value="1990">1990s</option>
+          <option value="2000">2000s</option>
+          <option value="2010">2010s</option>
+          <option value="2020">2020s</option>
+        </select>
+      </div>
+      <div id="runWrap" style="position:relative;width:100%;"></div>
     </div>
     <div class="chart-wrap">
       <div class="chart-title">Most repeated viewings</div>
@@ -848,29 +861,44 @@ function renderStats() {
   });
 
   // Longest runs
-  const topRuns = [...ALL].filter(f=>f.r&&f.r<400).sort((a,b)=>b.r-a.r).slice(0,15);
-  document.getElementById('runWrap').style.height = Math.max(topRuns.length*24+60,160)+'px';
-  new Chart(document.getElementById('runChart'), {
-    type:'bar',
-    data:{ labels:topRuns.map(f=>{const t=displayTitle(f);return t.length>34?t.slice(0,34)+'…':t;}), datasets:[{ data:topRuns.map(f=>f.r), backgroundColor:topRuns.map((_,i)=>`rgba(61,186,122,${(1-(i/Math.max(topRuns.length-1,1))*0.72).toFixed(2)})`), borderColor:topRuns.map((_,i)=>`rgba(61,186,122,${(1-(i/Math.max(topRuns.length-1,1))*0.6).toFixed(2)})`), borderWidth:1 }] },
-    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
-      events:['mousemove','mouseout','click','touchstart','touchmove'],
-      onClick: (evt, elements) => {
-        if (!elements.length) return;
-        const f = topRuns[elements[0].index];
-        const idx = filtered.findIndex(x => x.id === f.id);
-        if (idx !== -1) openDetail(idx);
-      },
-      onHover: (evt, elements) => { evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{
-        const f = topRuns[c.dataIndex];
-        const parts = [c.raw + ' days'];
-        if (f.o) parts.push('Opened ' + fmt(f.o));
-        if (f.c) parts.push('Closed ' + fmt(f.c));
-        return parts;
-      }}}},
-      scales:{ x:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:11},color:yTickCol},grid:{display:false}} } }
-  });
+  window.renderRunChart = function() {
+    const sel = document.getElementById('runDecadeFilter');
+    const val = sel ? sel.value : 'all';
+    const pool = ALL.filter(f => {
+      if (!f.r || f.r >= 400) return false;
+      if (val === 'all') return true;
+      const dec = parseInt(val);
+      if (dec === 1925) return f.y >= 1925 && f.y < 1950;
+      return f.y >= dec && f.y < dec + 10;
+    });
+    const topRuns = [...pool].sort((a,b)=>b.r-a.r).slice(0,15);
+    const wrap = document.getElementById('runWrap');
+    wrap.innerHTML = '';
+    if (!topRuns.length) {
+      wrap.innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No data for this period.</p>';
+      return;
+    }
+    wrap.style.height = Math.max(topRuns.length*26+60,160)+'px';
+    const canvas = document.createElement('canvas');
+    wrap.appendChild(canvas);
+    new Chart(canvas, {
+      type:'bar',
+      data:{ labels:topRuns.map(f=>{const t=displayTitle(f);return t.length>34?t.slice(0,34)+'…':t;}), datasets:[{ data:topRuns.map(f=>f.r), backgroundColor:topRuns.map((_,i)=>`rgba(61,186,122,${(1-(i/Math.max(topRuns.length-1,1))*0.72).toFixed(2)})`), borderColor:topRuns.map((_,i)=>`rgba(61,186,122,${(1-(i/Math.max(topRuns.length-1,1))*0.6).toFixed(2)})`), borderWidth:1 }] },
+      options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+        events:['mousemove','mouseout','click','touchstart','touchmove'],
+        onClick:(evt,elements)=>{ if(!elements.length)return; const f=topRuns[elements[0].index]; const idx=filtered.findIndex(x=>x.id===f.id); if(idx!==-1)openDetail(idx); },
+        onHover:(evt,elements)=>{ evt.native.target.style.cursor=elements.length?'pointer':'default'; },
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{
+          const f=topRuns[c.dataIndex];
+          const parts=[c.raw+' days'];
+          if(f.o) parts.push('Opened '+fmt(f.o));
+          if(f.c) parts.push('Closed '+fmt(f.c));
+          return parts;
+        }}}},
+        scales:{ x:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:11},color:yTickCol},grid:{display:false}} } }
+    });
+  };
+  renderRunChart();
 
   // Most repeated viewings — group by resolved display title, count entries
   const rc = {};
