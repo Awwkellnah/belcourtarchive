@@ -287,8 +287,8 @@ td { padding: 10px 12px; vertical-align: middle; }
     </div>
     <div class="chart-wrap">
       <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:1rem;">
-        <div class="chart-title" style="margin-bottom:0;">Top 15 longest runs</div>
-        <select id="runDecadeFilter" onchange="renderRunChart()" style="font-size:14px;padding:6px 24px 6px 10px;">
+        <div class="chart-title" style="margin-bottom:0;">Longest runs</div>
+        <select id="runDecadeFilter" onchange="runChartLimit=15;renderRunChart()" style="font-size:14px;padding:6px 24px 6px 10px;">
           <option value="all">All years</option>
           <option value="1925">1925–1949</option>
           <option value="1960">1960s</option>
@@ -301,11 +301,17 @@ td { padding: 10px 12px; vertical-align: middle; }
         </select>
       </div>
       <div id="runWrap" style="position:relative;width:100%;"></div>
+      <div id="runMoreWrap" style="display:none;text-align:center;margin-top:0.85rem;">
+        <button onclick="showMoreRuns()" style="background:none;border:1px solid var(--border);border-radius:4px;color:var(--ink-faint);font-family:'DM Sans',sans-serif;font-size:13px;padding:6px 18px;cursor:pointer;" onmouseover="this.style.borderColor='var(--border-hover)';this.style.color='var(--ink-light)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--ink-faint)'">Show 15 more</button>
+      </div>
     </div>
     <div class="chart-wrap">
       <div class="chart-title">Most repeated viewings</div>
       <p style="font-size:14px;color:var(--ink-faint);margin-bottom:1.25rem;">Films with the most separate runs at the Belcourt.</p>
-      <div id="repeatWrap" style="position:relative;width:100%;"><canvas id="repeatChart"></canvas></div>
+      <div id="repeatWrap" style="position:relative;width:100%;"></div>
+      <div id="repeatMoreWrap" style="display:none;text-align:center;margin-top:0.85rem;">
+        <button onclick="showMoreRepeats()" style="background:none;border:1px solid var(--border);border-radius:4px;color:var(--ink-faint);font-family:'DM Sans',sans-serif;font-size:13px;padding:6px 18px;cursor:pointer;" onmouseover="this.style.borderColor='var(--border-hover)';this.style.color='var(--ink-light)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--ink-faint)'">Show 15 more</button>
+      </div>
     </div>
     <div class="chart-wrap">
       <div class="chart-title">Genre trends over time</div>
@@ -527,6 +533,7 @@ function loadDatabase(input) {
 // Auto-load belcourtfilms.json from the same directory if available
 document.addEventListener('DOMContentLoaded', function() {
   fetch('./belcourtfilms.json')
+
     .then(function(res) {
       if (!res.ok) throw new Error('Not found');
       return res.json();
@@ -861,6 +868,9 @@ function renderStats() {
   });
 
   // Longest runs
+  const RUN_CHART_MAX = 100;
+  let runChartLimit = 15;
+  window.showMoreRuns = function() { runChartLimit = Math.min(runChartLimit + 15, RUN_CHART_MAX); renderRunChart(); };
   window.renderRunChart = function() {
     const sel = document.getElementById('runDecadeFilter');
     const val = sel ? sel.value : 'all';
@@ -871,11 +881,13 @@ function renderStats() {
       if (dec === 1925) return f.y >= 1925 && f.y < 1950;
       return f.y >= dec && f.y < dec + 10;
     });
-    const topRuns = [...pool].sort((a,b)=>b.r-a.r).slice(0,15);
+    const sorted = [...pool].sort((a,b)=>b.r-a.r);
+    const topRuns = sorted.slice(0, runChartLimit);
     const wrap = document.getElementById('runWrap');
     wrap.innerHTML = '';
     if (!topRuns.length) {
       wrap.innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No data for this period.</p>';
+      document.getElementById('runMoreWrap').style.display = 'none';
       return;
     }
     wrap.style.height = Math.max(topRuns.length*26+60,160)+'px';
@@ -897,6 +909,7 @@ function renderStats() {
         }}}},
         scales:{ x:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:11},color:yTickCol},grid:{display:false}} } }
     });
+    document.getElementById('runMoreWrap').style.display = runChartLimit < Math.min(sorted.length, RUN_CHART_MAX) ? '' : 'none';
   };
   renderRunChart();
 
@@ -905,25 +918,37 @@ function renderStats() {
   ALL.forEach(f => {
     const title = IMDB_TITLES[String(f.id)] || f.t || '';
     if (!title) return;
-    // Normalise: strip trailing "(35mm)", year suffixes, etc. for grouping
     const key = title.replace(/\s*\(35mm\)/i,'').replace(/\s*\(\d{4}\)\s*$/, '').trim();
     if (!key) return;
     if (!rc[key]) rc[key] = { count: 0, label: key };
     rc[key].count++;
   });
-  const topR = Object.values(rc).filter(e=>e.count>1).sort((a,b)=>b.count-a.count).slice(0,12);
-  if (topR.length) {
-    document.getElementById('repeatWrap').style.height = Math.max(topR.length*26+60,160)+'px';
-    new Chart(document.getElementById('repeatChart'), {
+  const allTopR = Object.values(rc).filter(e=>e.count>1).sort((a,b)=>b.count-a.count);
+  const REPEAT_CHART_MAX = 100;
+  let repeatChartLimit = 15;
+  window.showMoreRepeats = function() { repeatChartLimit = Math.min(repeatChartLimit + 15, REPEAT_CHART_MAX); renderRepeatChart(); };
+  window.renderRepeatChart = function() {
+    const topR = allTopR.slice(0, repeatChartLimit);
+    const wrap = document.getElementById('repeatWrap');
+    wrap.innerHTML = '';
+    if (!topR.length) {
+      wrap.innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">Not enough repeat data found.</p>';
+      document.getElementById('repeatMoreWrap').style.display = 'none';
+      return;
+    }
+    wrap.style.height = Math.max(topR.length*26+60,160)+'px';
+    const canvas = document.createElement('canvas');
+    wrap.appendChild(canvas);
+    new Chart(canvas, {
       type:'bar',
       data:{ labels:topR.map(e=>e.label), datasets:[{ data:topR.map(e=>e.count), backgroundColor:topR.map((_,i)=>`rgba(232,108,74,${(1-(i/Math.max(topR.length-1,1))*0.72).toFixed(2)})`), borderColor:topR.map((_,i)=>`rgba(232,108,74,${(1-(i/Math.max(topR.length-1,1))*0.6).toFixed(2)})`), borderWidth:1 }] },
       options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, events:['mousemove','mouseout','click','touchstart','touchmove'],
         plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+' total run'+(c.raw===1?'':'s')}}},
         scales:{ x:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:11},color:yTickCol},grid:{display:false}} } }
     });
-  } else {
-    document.getElementById('repeatWrap').innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">Not enough repeat data found.</p>';
-  }
+    document.getElementById('repeatMoreWrap').style.display = repeatChartLimit < Math.min(allTopR.length, REPEAT_CHART_MAX) ? '' : 'none';
+  };
+  renderRepeatChart();
 
   // --- Genre helpers ---
   const GENRE_NORM = { 'Action': 'Action/Adventure', 'Adventure': 'Action/Adventure' };
