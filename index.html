@@ -181,7 +181,7 @@ td { padding: 10px 12px; vertical-align: middle; }
     <div class="controls">
       <div class="search-wrap">
         <svg class="search-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6.5" cy="6.5" r="5"/><line x1="10.5" y1="10.5" x2="14" y2="14"/></svg>
-        <input type="text" id="search" placeholder="Search titles, directors, series, notes…" oninput="onFilter()">
+        <input type="text" id="search" placeholder="Search titles, directors, actors, series, notes…" oninput="onFilter()">
       </div>
       <select id="fYear" onchange="onFilter()"><option value="">All years</option></select>
       <select id="fDecade" onchange="onFilter()"><option value="">All decades</option></select>
@@ -369,6 +369,12 @@ td { padding: 10px 12px; vertical-align: middle; }
       <div class="chart-title">Most screened female directors</div>
       <p style="font-size:14px;color:var(--ink-faint);margin-bottom:1.25rem;">Number of <em>distinct</em> films by each director that have played at the Belcourt — repeat screenings of the same title count once.</p><p style="font-size:14px;color:var(--ink-faint);margin-bottom:1.25rem;">Click any card to view which of their films have been screened at the Belcourt.</p>      <div id="femaleDirectorWrap"></div>
     </div>
+    <div class="chart-wrap">
+      <div class="chart-title">Top 20 actors by appearances</div>
+      <p style="font-size:14px;color:var(--ink-faint);margin-bottom:1.25rem;">Number of <em>distinct</em> films each actor has appeared in at the Belcourt — repeat screenings of the same title count once. Only the top 3 billed cast members per film are counted; smaller roles are not included.</p>
+      <p style="font-size:14px;color:var(--ink-faint);margin-bottom:1.25rem;">Click any card to view which of their films have been screened at the Belcourt.</p>
+      <div id="actorWrap"></div>
+    </div>
   </div>
 </div>
 
@@ -398,7 +404,7 @@ td { padding: 10px 12px; vertical-align: middle; }
   <div class="detail" style="max-width:640px;">
     <div class="detail-head" style="display:flex;align-items:center;gap:14px;">
       <button class="btn-x" onclick="closeDirectorModal()" aria-label="Close">×</button>
-      <div id="dm-avatar" style="width:48px;height:48px;border-radius:50%;border:2px solid transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+      <div id="dm-avatar" style="width:48px;height:48px;border-radius:50%;border:2px solid transparent;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
         <span id="dm-initials" style="font-size:16px;font-weight:600;font-family:'DM Sans',sans-serif;"></span>
       </div>
       <div>
@@ -447,6 +453,7 @@ let IMDB_GENRE     = {};
 let IMDB_COUNTRY   = {};
 let IMDB_LANGUAGE  = {};
 let IMDB_RATED     = {};
+let IMDB_ACTORS    = {};
 
 let filtered = [], page = 1, sortKey = 'o', sortDir = -1;
 const PER = 50;
@@ -530,16 +537,15 @@ function loadDatabase(input) {
   reader.readAsText(file);
 }
 
-// Auto-load belcourtfilms.json from the same directory if available
+// Auto-load belcourtfilms.json (and belcourtactors.json if present) from the same directory
 document.addEventListener('DOMContentLoaded', function() {
-  fetch('./belcourtfilms.json')
-
-    .then(function(res) {
-      if (!res.ok) throw new Error('Not found');
-      return res.json();
-    })
-    .then(function(data) {
-      processData(data);
+  Promise.all([
+    fetch('./belcourtfilms.json').then(function(res) { if (!res.ok) throw new Error('Not found'); return res.json(); }),
+    fetch('./belcourtactors.json').then(function(res) { return res.ok ? res.json() : {}; }).catch(function() { return {}; })
+  ])
+    .then(function(results) {
+      IMDB_ACTORS = results[1];
+      processData(results[0]);
     })
     .catch(function() {
       // Fetch failed — leave the manual load screen visible
@@ -592,8 +598,9 @@ function onFilter() {
   const sort = document.getElementById('fSort').value;
 
   filtered = ALL.filter(f => {
-    const dirStr = IMDB_DIRECTORS[String(f.id)] || f.director || f.d || '';
-    if(q && ![(f.t||''),(f.s||''),(f.n||''),(f.co||''),dirStr].some(v=>v.toLowerCase().includes(q))) return false;
+    const dirStr    = IMDB_DIRECTORS[String(f.id)] || f.director || f.d || '';
+    const actorStr  = IMDB_ACTORS[String(f.id)] || '';
+    if(q && ![(f.t||''),(f.s||''),(f.n||''),(f.co||''),dirStr,actorStr].some(v=>v.toLowerCase().includes(q))) return false;
     if(yr && f.y != yr) return false;
     if(dc && Math.floor(f.y/10)*10 != dc) return false;
     return true;
@@ -690,6 +697,7 @@ function openDetail(idx) {
     ['Venue',        f.co || '—'],
     ['Genre',        genre],
     ['Country',      country],
+    ['Actors',       IMDB_ACTORS[id] || null],
     ['Series',       f.s  || null],
     ['Plot',         IMDB_PLOT[id] || null],
     ['Notes',        f.n  || null],
@@ -697,7 +705,7 @@ function openDetail(idx) {
 
   document.getElementById('d-body').innerHTML = fields.map(function(row) {
     const l = row[0], v = row[1];
-    const full = (l === 'Plot' || l === 'Notes' || l === 'Series') ? 'full' : '';
+    const full = (l === 'Plot' || l === 'Notes' || l === 'Series' || l === 'Actors') ? 'full' : '';
     return `<div class="detail-field ${full}"><label>${l}</label><span>${v}</span></div>`;
   }).join('');
 
@@ -793,9 +801,25 @@ function renderStats() {
   const runtimeFilms = ALL.filter(f=>{ const r=parseInt(IMDB_RUNTIME[String(f.id)]); return r>0&&r<400; });
   const avgRuntimeMins = runtimeFilms.length ? Math.round(runtimeFilms.reduce((s,f)=>s+parseInt(IMDB_RUNTIME[String(f.id)]),0)/runtimeFilms.length) : null;
 
+  // Count unique films: IMDb titles are deduplicated by normalized title;
+  // entries with no IMDb title each count as their own film (keyed by id).
+  const uniqueTitleKeys = new Set();
+  ALL.forEach(f => {
+    const id = String(f.id);
+    const imdbTitle = IMDB_TITLES[id];
+    if (imdbTitle) {
+      const key = 'imdb:' + imdbTitle.replace(/\s*\(35mm\)/i,'').replace(/\s*\(\d{4}\)\s*$/, '').trim().toLowerCase();
+      uniqueTitleKeys.add(key);
+    } else {
+      uniqueTitleKeys.add('id:' + id);
+    }
+  });
+  const uniqueFilmCount = uniqueTitleKeys.size;
+
   const cardAccents = ['#4a8fe8','#e8a23a','#3dba7a','#c45c8a','#7c5ce8','#3abbb8','#e86c4a','#b87ab0'];
   const cardData = [
-    ['Total films',           ALL.length.toLocaleString(), null,                          cardAccents[0]],
+    ['Total runs',            ALL.length.toLocaleString(),       null,                          cardAccents[0]],
+    ['Unique films',          uniqueFilmCount.toLocaleString(),  null,                          cardAccents[6]],
     ['Years of history',      101,                         '1925–2026',                   cardAccents[2]],
     ['Silent films',          silents,                     null,                          cardAccents[1]],
     ['Lost silent films',     lostSilents,                 'considered lost',             cardAccents[7]],
@@ -1278,11 +1302,11 @@ function renderStats() {
           const preview = (dirFilmsSorted[name]||[]).slice(0,3).map(f=>f.title.length>28?f.title.slice(0,28)+'…':f.title);
           return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px 12px;display:flex;flex-direction:column;gap:8px;transition:border-color 0.15s;cursor:pointer;" onclick="openDirectorModal(${i})" onmouseover="this.style.borderColor='${color}55'" onmouseout="this.style.borderColor='var(--border)'">
             <div style="display:flex;align-items:center;gap:10px;">
-              <div style="width:40px;height:40px;border-radius:50%;background:${color}1a;border:2px solid ${color}44;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <span style="font-size:13px;font-weight:600;color:${color};font-family:'DM Sans',sans-serif;">${initials}</span>
+              <div id="dir-avatar-${i}" style="width:60px;height:60px;border-radius:50%;background:${color}1a;border:2px solid ${color}44;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
+                <span style="font-size:16px;font-weight:600;color:${color};font-family:'DM Sans',sans-serif;">${initials}</span>
               </div>
               <div style="min-width:0;">
-                <div style="font-size:13px;font-weight:500;color:var(--ink);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
+                <div style="font-size:13px;font-weight:500;color:var(--ink);line-height:1.25;">${name}</div>
                 <div style="font-size:11px;color:${color};margin-top:2px;font-weight:500;">${count} film${count===1?'':'s'}</div>
               </div>
             </div>
@@ -1290,6 +1314,7 @@ function renderStats() {
           </div>`;
         }).join('')}
       </div>`;
+    fetchPersonPhotos(topD, DIR_CARD_COLORS, 'dir-avatar-');
   } else {
     document.getElementById('directorWrap').innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No director data found in this archive file.</p>';
   }
@@ -1363,11 +1388,11 @@ function renderStats() {
           const preview = (dirFilmsSorted[name]||[]).slice(0,3).map(f=>f.title.length>28?f.title.slice(0,28)+'…':f.title);
           return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px 12px;display:flex;flex-direction:column;gap:8px;transition:border-color 0.15s;cursor:pointer;" onclick="openFemaleDirectorModal(${i})" onmouseover="this.style.borderColor='${color}55'" onmouseout="this.style.borderColor='var(--border)'">
             <div style="display:flex;align-items:center;gap:10px;">
-              <div style="width:40px;height:40px;border-radius:50%;background:${color}1a;border:2px solid ${color}44;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <span style="font-size:13px;font-weight:600;color:${color};font-family:'DM Sans',sans-serif;">${initials}</span>
+              <div id="fdir-avatar-${i}" style="width:60px;height:60px;border-radius:50%;background:${color}1a;border:2px solid ${color}44;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
+                <span style="font-size:16px;font-weight:600;color:${color};font-family:'DM Sans',sans-serif;">${initials}</span>
               </div>
               <div style="min-width:0;">
-                <div style="font-size:13px;font-weight:500;color:var(--ink);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}</div>
+                <div style="font-size:13px;font-weight:500;color:var(--ink);line-height:1.25;">${name}</div>
                 <div style="font-size:11px;color:${color};margin-top:2px;font-weight:500;">${count} film${count===1?'':'s'}</div>
               </div>
             </div>
@@ -1375,26 +1400,100 @@ function renderStats() {
           </div>`;
         }).join('')}
       </div>`;
+    fetchPersonPhotos(topFemale, DIR_CARD_COLORS, 'fdir-avatar-');
   } else {
     femWrap.innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No female directors found in this archive file. Director data may not be loaded.</p>';
+  }
+
+  // Top 20 actors by distinct film appearances
+  const actorFilmMap = {};
+  ALL.forEach(f => {
+    const id = String(f.id);
+    const raw = IMDB_ACTORS[id] || '';
+    if (!raw) return;
+    const title = displayTitle(f) || f.t || '';
+    const normTitle = title.replace(/\s*\(35mm\)/i,'').replace(/\s*\(\d{4}\)\s*$/, '').trim();
+    if (!normTitle) return;
+    const releaseYear = parseInt(IMDB_YEAR[id]) || null;
+    const rating = IMDB_RATINGS[id] || null;
+    raw.split(',').slice(0, 3).forEach(name => {
+      const t = name.trim();
+      if (!t || t === 'N/A') return;
+      if (!actorFilmMap[t]) actorFilmMap[t] = {};
+      if (!actorFilmMap[t][normTitle]) actorFilmMap[t][normTitle] = { title: normTitle, releaseYear, rating, runs: 0 };
+      actorFilmMap[t][normTitle].runs++;
+    });
+  });
+  const actorFilmsSorted = {};
+  const actorCounts = {};
+  Object.keys(actorFilmMap).forEach(name => {
+    const arr = Object.values(actorFilmMap[name]).sort((a, b) => {
+      if (a.releaseYear && b.releaseYear) return a.releaseYear - b.releaseYear;
+      if (a.releaseYear) return -1;
+      if (b.releaseYear) return 1;
+      return a.title.localeCompare(b.title);
+    });
+    actorFilmsSorted[name] = arr;
+    actorCounts[name] = arr.length;
+  });
+  const topActors = Object.entries(actorCounts).sort((a,b) => b[1]-a[1]).slice(0,20);
+  window.TOP_ACTORS = topActors;
+  window.ACTOR_FILMS = actorFilmsSorted;
+
+  const ACTOR_CARD_COLORS = [
+    '#3abbb8','#c45c8a','#4a8fe8','#e8a23a','#7c5ce8',
+    '#3dba7a','#e86c4a','#b87ab0','#2d7abf','#7ab87a',
+  ];
+  const actorWrap = document.getElementById('actorWrap');
+  if (topActors.length) {
+    actorWrap.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;">
+        ${topActors.map(([name, count], i) => {
+          const color = ACTOR_CARD_COLORS[i % ACTOR_CARD_COLORS.length];
+          const initials = name.split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+          const preview = (actorFilmsSorted[name]||[]).slice(0,3).map(f=>f.title.length>28?f.title.slice(0,28)+'…':f.title);
+          return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px 12px;display:flex;flex-direction:column;gap:8px;transition:border-color 0.15s;cursor:pointer;" onclick="openActorModal(${i})" onmouseover="this.style.borderColor='${color}55'" onmouseout="this.style.borderColor='var(--border)'">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div id="actor-avatar-${i}" style="width:60px;height:60px;border-radius:50%;background:${color}1a;border:2px solid ${color}44;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
+                <span style="font-size:16px;font-weight:600;color:${color};font-family:'DM Sans',sans-serif;">${initials}</span>
+              </div>
+              <div style="min-width:0;">
+                <div style="font-size:13px;font-weight:500;color:var(--ink);line-height:1.25;">${name}</div>
+                <div style="font-size:11px;color:${color};margin-top:2px;font-weight:500;">${count} film${count===1?'':'s'}</div>
+              </div>
+            </div>
+            ${preview.length ? `<div style="font-size:11px;color:var(--ink-faint);line-height:1.6;border-top:1px solid var(--border);padding-top:7px;">${preview.join('<br>')}<br><span style="color:${color};font-size:10px;letter-spacing:0.04em;">View all →</span></div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>`;
+    fetchPersonPhotos(topActors, ACTOR_CARD_COLORS, 'actor-avatar-');
+  } else {
+    actorWrap.innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No actor data found. Make sure belcourtactors.json is present.</p>';
   }
 }
 
 const DIR_MODAL_COLORS = ['#4a8fe8','#e8a23a','#3dba7a','#c45c8a','#7c5ce8','#3abbb8','#e86c4a','#2d7abf','#b87ab0','#7ab87a'];
 
-function _showDirectorModal(name, count, colorIndex) {
-  const films = window.DIRECTOR_FILMS[name] || [];
+function _showDirectorModal(name, count, colorIndex, filmMap, photoUrl) {
+  const films = (filmMap || window.DIRECTOR_FILMS)[name] || [];
   const color = DIR_MODAL_COLORS[colorIndex % 10];
   const initials = name.split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
 
   const av = document.getElementById('dm-avatar');
-  av.style.background = color + '1a';
   av.style.borderColor = color + '55';
-  document.getElementById('dm-initials').style.color = color;
-  document.getElementById('dm-initials').textContent = initials;
+  if (photoUrl) {
+    av.style.width = '64px';
+    av.style.height = '64px';
+    av.style.background = 'transparent';
+    av.innerHTML = '<img src="' + photoUrl + '" alt="" style="width:100%;height:100%;object-fit:cover;object-position:top;">';
+  } else {
+    av.style.width = '48px';
+    av.style.height = '48px';
+    av.style.background = color + '1a';
+    av.innerHTML = '<span id="dm-initials" style="font-size:16px;font-weight:600;font-family:\'DM Sans\',sans-serif;color:' + color + ';">' + initials + '</span>';
+  }
   document.getElementById('dm-name').textContent = name;
-  document.getElementById('dm-sub').textContent =
-    count + ' distinct film' + (count === 1 ? '' : 's') + ' screened at the Belcourt';
+  document.getElementById('dm-sub').textContent = count + ' distinct film' + (count === 1 ? '' : 's') + ' screened at the Belcourt';
 
   const isLight = document.documentElement.classList.contains('light');
   const borderCol = isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)';
@@ -1426,18 +1525,66 @@ function _showDirectorModal(name, count, colorIndex) {
   document.getElementById('director-overlay').classList.add('open');
 }
 
+function _photoFromCache(name) {
+  try {
+    const cache = JSON.parse(localStorage.getItem(PERSON_PHOTO_CACHE_KEY) || '{}');
+    return cache[name] || null;
+  } catch(e) { return null; }
+}
+
 function openDirectorModal(i) {
   const [name, count] = window.TOP_DIRECTORS[i];
-  _showDirectorModal(name, count, i);
+  _showDirectorModal(name, count, i, null, _photoFromCache(name));
 }
 
 function openFemaleDirectorModal(i) {
   const [name, count] = window.TOP_FEMALE_DIRECTORS[i];
-  _showDirectorModal(name, count, i);
+  _showDirectorModal(name, count, i, null, _photoFromCache(name));
 }
 
 function closeDirectorModal() {
   document.getElementById('director-overlay').classList.remove('open');
+}
+
+function openActorModal(i) {
+  const [name, count] = window.TOP_ACTORS[i];
+  _showDirectorModal(name, count, i, window.ACTOR_FILMS, _photoFromCache(name));
+}
+
+const PERSON_PHOTO_CACHE_KEY = 'belcourt_person_photos_v1';
+
+function fetchPersonPhotos(people, colors, idPrefix) {
+  let cache = {};
+  try { cache = JSON.parse(localStorage.getItem(PERSON_PHOTO_CACHE_KEY) || '{}'); } catch(e) {}
+
+  people.forEach(([name], i) => {
+    const color = colors[i % colors.length];
+    const el = document.getElementById(idPrefix + i);
+    if (!el) return;
+
+    if (name in cache) {
+      if (cache[name]) applyPersonPhoto(el, cache[name], color);
+      return;
+    }
+
+    const wikiSlug = name.trim().replace(/ /g, '_');
+    fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(wikiSlug))
+      .then(function(res) { return res.ok ? res.json() : null; })
+      .then(function(data) {
+        const url = (data && data.thumbnail && data.thumbnail.source) ? data.thumbnail.source : null;
+        cache[name] = url;
+        try { localStorage.setItem(PERSON_PHOTO_CACHE_KEY, JSON.stringify(cache)); } catch(e) {}
+        const elNow = document.getElementById(idPrefix + i);
+        if (url && elNow) applyPersonPhoto(elNow, url, color);
+      })
+      .catch(function() {});
+  });
+}
+
+function applyPersonPhoto(el, url, color) {
+  el.innerHTML = '<img src="' + url + '" alt="" style="width:100%;height:100%;object-fit:cover;object-position:top;" onerror="this.parentElement.dataset.err=\'1\'">';
+  el.style.background = 'transparent';
+  el.style.border = '2px solid ' + color + '44';
 }
 
 function showTab(name) {
