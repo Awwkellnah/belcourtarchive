@@ -159,8 +159,17 @@ td { padding: 10px 12px; vertical-align: middle; }
 .detail-field label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--ink-faint); display: block; margin-bottom: 3px; }
 .detail-field span { font-size: 13px; color: var(--ink-light); line-height: 1.4; display: block; }
 .detail-field.full { grid-column: 1 / -1; }
-.detail-poster { padding: 1.25rem 1.5rem 0; display: flex; justify-content: center; }
-.detail-poster img { max-height: 300px; max-width: 200px; width: auto; border-radius: 4px; border: 1px solid var(--border); object-fit: cover; }
+.detail-poster { padding: 1.25rem 1.5rem 0; display: flex; flex-direction: column; align-items: center; }
+.detail-poster img { max-height: 480px; max-width: 340px; width: auto; border-radius: 4px; border: 1px solid var(--border); object-fit: cover; }
+.img-tabs { display: flex; gap: 0; margin-bottom: 10px; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
+.img-tab { background: none; border: none; padding: 5px 16px; font-family: 'DM Sans', sans-serif; font-size: 12px; color: var(--ink-faint); cursor: pointer; transition: background 0.12s, color 0.12s; }
+.img-tab.active { background: var(--border); color: var(--ink); }
+.img-tab:hover:not(.active) { background: var(--border); opacity: 0.6; }
+.btn-nav { position: absolute; top: 50%; transform: translateY(-50%); background: var(--bg-card); border: 1px solid var(--border); border-radius: 50%; width: 40px; height: 40px; font-size: 20px; line-height: 1; color: var(--ink-faint); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: border-color 0.1s, color 0.1s; z-index: 101; }
+.btn-nav:hover:not(:disabled) { border-color: var(--border-hover); color: var(--ink); }
+.btn-nav:disabled { opacity: 0.2; cursor: default; }
+#d-prev { left: 1rem; }
+#d-next { right: 1rem; }
 .detail-foot { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; }
 .btn-close { background: none; border: 1px solid var(--border); border-radius: 4px; padding: 7px 18px; font-family: 'DM Sans', sans-serif; font-size: 12px; color: var(--ink-faint); cursor: pointer; transition: border-color 0.1s, color 0.1s; }
 .btn-close:hover { border-color: var(--border-hover); color: var(--ink); }
@@ -255,6 +264,12 @@ td { padding: 10px 12px; vertical-align: middle; }
         <p>The majority of data from 1925–2008 was drawn from the Belcourt's weekly newspaper advertisements — published under the theater's various names over the decades — as they appeared in The Tennessean. These were accessed either through microfilm copies at the Nashville Public Library's downtown branch or via the digitized edition of The Tennessean on Newspapers.com.</p>
         <p style="margin-top:0.75rem;">For a period roughly spanning 2001–2008, the Belcourt ran newspaper ads less consistently. Data for those years was supplemented using a combination of the digitized Tennessean, archived snapshots of the Belcourt's early website via the Wayback Machine (available through Archive.org), and internal clippings from the Belcourt's own records.</p>
         <p style="margin-top:0.75rem;">Beginning in 2008, the Belcourt transitioned to Agile Ticketing Solutions, which maintains historical records of all films screened at the theater. This system served as the primary source for all data from 2008 to the present.</p>
+      </div>
+
+      <div style="border-top:1px solid var(--border);padding-top:1.5rem;">
+        <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--blue);font-weight:500;margin-bottom:0.5rem;">Tennessean Advertisements</div>
+        <p>Alongside the screening data, I have been collecting the original newspaper advertisements that the Belcourt placed in The Tennessean. These ads were sourced through Newspapers.com and clipped directly from the digitized newspaper archives.</p>
+        <p style="margin-top:0.75rem;">The ads are being added to the archive incrementally. Where one is available, it can be viewed on the film's detail page — click any film in the list and look for the <em>Ad</em> image alongside the poster.</p>
       </div>
 
       <div style="border-top:1px solid var(--border);padding-top:1.5rem;">
@@ -393,6 +408,8 @@ td { padding: 10px 12px; vertical-align: middle; }
 
 <!-- DETAIL PANEL -->
 <div class="overlay" id="overlay" onclick="if(event.target===this)closeDetail()">
+  <button class="btn-nav" id="d-prev" onclick="navigateDetail(-1)" aria-label="Previous film">‹</button>
+  <button class="btn-nav" id="d-next" onclick="navigateDetail(1)" aria-label="Next film">›</button>
   <div class="detail">
     <div class="detail-head">
       <button class="btn-x" onclick="closeDetail()" aria-label="Close">×</button>
@@ -400,7 +417,14 @@ td { padding: 10px 12px; vertical-align: middle; }
       <div class="detail-sub" id="d-sub"></div>
       <div id="d-tags" style="display:none;margin-top:10px;gap:6px;flex-wrap:wrap;"></div>
     </div>
-    <div class="detail-poster" id="d-poster" style="display:none"></div>
+    <div class="detail-poster" id="d-poster" style="display:none">
+      <div class="img-tabs" id="d-img-tabs" style="display:none">
+        <button class="img-tab" id="d-tab-poster" onclick="switchImgTab('poster')">Poster</button>
+        <button class="img-tab active" id="d-tab-ad" onclick="switchImgTab('ad')">Ad</button>
+      </div>
+      <img id="d-poster-img" src="" alt="" loading="lazy" style="display:none" onerror="this.style.display='none'">
+      <img id="d-ad-img" src="" alt="" loading="lazy" style="display:none" onerror="this.style.display='none'">
+    </div>
     <div class="detail-body" id="d-body"></div>
     <div class="detail-foot" style="display:flex;justify-content:space-between;align-items:center;">
       <div style="display:flex;gap:8px;align-items:center;">
@@ -469,7 +493,7 @@ let IMDB_LANGUAGE  = {};
 let IMDB_RATED     = {};
 let IMDB_ACTORS    = {};
 
-let filtered = [], page = 1, sortKey = 'o', sortDir = -1;
+let filtered = [], page = 1, sortKey = 'o', sortDir = -1, currentDetailIdx = -1;
 const PER = 50;
 let statsRendered = false;
 
@@ -675,7 +699,15 @@ function renderPagination() {
 
 function goPage(p) { page=p; renderTable(); window.scrollTo(0,0); }
 
+function navigateDetail(dir) {
+  const next = currentDetailIdx + dir;
+  if (next >= 0 && next < filtered.length) openDetail(next);
+}
+
 function openDetail(idx) {
+  currentDetailIdx = idx;
+  document.getElementById('d-prev').disabled = idx <= 0;
+  document.getElementById('d-next').disabled = idx >= filtered.length - 1;
   const f  = filtered[idx];
   const id = String(f.id);
 
@@ -724,17 +756,57 @@ function openDetail(idx) {
     return `<div class="detail-field ${full}"><label>${l}</label><span>${v}</span></div>`;
   }).join('');
 
-  // Poster
-  const posterEl  = document.getElementById('d-poster');
-  const posterUrl = IMDB_POSTERS[id];
+  // Poster + Ad tabs
+  const posterEl   = document.getElementById('d-poster');
+  const posterImg  = document.getElementById('d-poster-img');
+  const adImg      = document.getElementById('d-ad-img');
+  const imgTabs    = document.getElementById('d-img-tabs');
+  const tabPoster  = document.getElementById('d-tab-poster');
+  const tabAd      = document.getElementById('d-tab-ad');
+  const posterUrl  = IMDB_POSTERS[id];
+  const adUrl      = 'ads/' + id + '.jpg';
+
+  // probe ad existence via a HEAD-equivalent: set src and let onerror hide; we need to know
+  // synchronously so we control tab visibility, so use a pre-flight Image object
+  const adProbe = new Image();
+  adProbe.onload = function() {
+    adImg.src = adUrl;
+    adImg.alt = displayTitle(f) + ' ad';
+    adImg.style.display = 'block';
+    if (posterUrl) {
+      imgTabs.style.display = 'flex';
+      tabAd.classList.add('active');
+      tabPoster.classList.remove('active');
+      posterImg.style.display = 'none';
+    } else {
+      imgTabs.style.display = 'none';
+    }
+    posterEl.style.display = 'flex';
+  };
+  adProbe.onerror = function() {
+    adImg.src = '';
+    adImg.style.display = 'none';
+    imgTabs.style.display = 'none';
+    if (posterUrl) {
+      posterImg.style.display = 'block';
+      posterEl.style.display = 'flex';
+    } else {
+      posterImg.style.display = 'none';
+      posterEl.style.display = 'none';
+    }
+  };
+
   if (posterUrl) {
     const proxied = 'https://images.weserv.nl/?url=' + encodeURIComponent(posterUrl) + '&w=200&h=300&fit=cover';
-    posterEl.innerHTML = `<img src="${proxied}" alt="${displayTitle(f)}" loading="lazy" onerror="this.parentElement.style.display='none'">`;
-    posterEl.style.display = 'flex';
+    posterImg.src = proxied;
+    posterImg.alt = displayTitle(f);
+    posterImg.onerror = function() { this.style.display = 'none'; if (!adImg.src) posterEl.style.display = 'none'; };
   } else {
-    posterEl.innerHTML = '';
-    posterEl.style.display = 'none';
+    posterImg.src = '';
+    posterImg.style.display = 'none';
   }
+
+  adProbe.src = adUrl;
 
   // IMDb link
   const imdbLink = document.getElementById('d-imdb-link');
@@ -759,6 +831,30 @@ function openDetail(idx) {
 }
 
 function closeDetail() { document.getElementById('overlay').classList.remove('open'); }
+
+document.addEventListener('keydown', function(e) {
+  if (!document.getElementById('overlay').classList.contains('open')) return;
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); navigateDetail(-1); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); navigateDetail(1); }
+});
+
+function switchImgTab(tab) {
+  const posterImg = document.getElementById('d-poster-img');
+  const adImg     = document.getElementById('d-ad-img');
+  const tabPoster = document.getElementById('d-tab-poster');
+  const tabAd     = document.getElementById('d-tab-ad');
+  if (tab === 'poster') {
+    posterImg.style.display = 'block';
+    adImg.style.display = 'none';
+    tabPoster.classList.add('active');
+    tabAd.classList.remove('active');
+  } else {
+    posterImg.style.display = 'none';
+    adImg.style.display = 'block';
+    tabPoster.classList.remove('active');
+    tabAd.classList.add('active');
+  }
+}
 
 // Vertical crosshair plugin — applies to all line charts
 Chart.register({
