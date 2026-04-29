@@ -102,6 +102,8 @@ td { padding: 10px 12px; vertical-align: middle; }
 .tag { display: inline-block; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 2px; font-weight: 500; white-space: nowrap; }
 .tag-film { background: #1a2a45; color: #7ab0f0; }
 .tag-silent { background: #2a2018; color: #c8a878; }
+.tag-35mm { background: rgba(74,143,232,0.15); color: #93baf5; border: 1px solid rgba(74,143,232,0.3); }
+:root.light .tag-35mm { background: rgba(34,96,196,0.12); color: #1a4fa0; border-color: rgba(34,96,196,0.35); }
 
 /* PAGINATION */
 .pagination { display: flex; align-items: center; justify-content: space-between; margin-top: 1.25rem; flex-wrap: wrap; gap: 10px; }
@@ -277,9 +279,9 @@ td { padding: 10px 12px; vertical-align: middle; }
       </div>
 
       <div style="border-top:1px solid var(--border);padding-top:1.5rem;">
-        <div style="font-size:14px;letter-spacing:0.14em;text-transform:uppercase;color:var(--blue);font-weight:500;margin-bottom:0.5rem;">Have a question/comment, or catch a mistake?</div>
+        <div style="font-size:12px;letter-spacing:0.14em;text-transform:uppercase;color:var(--blue);font-weight:500;margin-bottom:0.5rem;">Have a question/comment, or catch a mistake?</div>
         <p>Reach out! We'd love to hear your feedback. If it's regarding a mistake or correction, be sure to include the title of the film, the date/year it played.</p>
-        <a href="mailto:Keller@belcourt.org?subject=Archive%20correction" style="display:inline-block;margin-top:1rem;padding:9px 20px;background:var(--blue);color:#fff;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;text-decoration:none;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Submit feedback →</a>
+        <a href="mailto:Kelljm02@gmail.com?subject=Archive%20correction" style="display:inline-block;margin-top:1rem;padding:9px 20px;background:var(--blue);color:#fff;border-radius:4px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;text-decoration:none;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.85'" onmouseout="this.style.opacity='1'">Submit feedback →</a>
       </div>
 
     </div>
@@ -456,6 +458,7 @@ let IMDB_TITLES    = {};
 let IMDB_POSTERS   = {};
 let IMDB_DIRECTORS = {};
 let IMDB_RATINGS   = {};
+let RT_RATINGS     = {};
 let IMDB_RUNTIME   = {};
 let IMDB_PLOT      = {};
 let IMDB_URLS      = {};
@@ -480,7 +483,7 @@ function processData(data) {
       return FILM_CATS.has(f.cat) && f.co !== 'Other' && !deletedIds.has(String(f.id));
     });
     IMDB_TITLES = {}; IMDB_POSTERS = {}; IMDB_DIRECTORS = {};
-    IMDB_RATINGS = {}; IMDB_RUNTIME = {}; IMDB_PLOT = {};
+    IMDB_RATINGS = {}; RT_RATINGS = {}; IMDB_RUNTIME = {}; IMDB_PLOT = {};
     IMDB_URLS = {}; IMDB_YEAR = {}; IMDB_GENRE = {}; IMDB_COUNTRY = {}; IMDB_LANGUAGE = {}; IMDB_RATED = {};
     const mergedResults = Object.assign({}, data.preloadedResults || {}, data.results || {});
     Object.entries(mergedResults).forEach(function(entry) {
@@ -492,6 +495,7 @@ function processData(data) {
       if (nna(d.poster))     IMDB_POSTERS[id]   = d.poster;
       if (nna(d.director))   IMDB_DIRECTORS[id] = d.director;
       if (nna(d.imdbRating)) IMDB_RATINGS[id]   = d.imdbRating;
+      if (nna(d.rottenTomatoes)) RT_RATINGS[id] = d.rottenTomatoes;
       if (nna(d.runtime))    IMDB_RUNTIME[id]   = d.runtime;
       if (nna(d.plot))       IMDB_PLOT[id]      = d.plot;
       if (nna(d.imdbUrl))    IMDB_URLS[id]      = d.imdbUrl;
@@ -643,7 +647,7 @@ function renderTable() {
   const slice = filtered.slice(start, start+PER);
   document.getElementById('tbody').innerHTML = slice.map((f,i) => `
     <tr onclick="openDetail(${start+i})">
-      <td class="td-title">${displayTitle(f)}${f['35mm'] === true ? '<span style="display:inline-block;font-size:9px;letter-spacing:0.06em;text-transform:uppercase;padding:2px 6px;border-radius:2px;font-weight:500;margin-left:6px;background:rgba(74,143,232,0.15);color:#93baf5;border:1px solid rgba(74,143,232,0.3);">35mm</span>' : ''}</td>
+      <td class="td-title">${displayTitle(f)}${f['35mm'] === true ? '<span class="tag tag-35mm" style="font-size:9px;margin-left:6px;">35mm</span>' : ''}</td>
       <td class="td-meta">${fmt(f.o)}</td>
       <td class="td-run">${f.r?f.r+' days':'—'}</td>
       <td class="td-meta" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.s||''}</td>
@@ -680,15 +684,15 @@ function openDetail(idx) {
   const subParts = [];
   if (IMDB_YEAR[id])      subParts.push(IMDB_YEAR[id] + ' release');
   if (IMDB_DIRECTORS[id]) subParts.push('Dir. ' + IMDB_DIRECTORS[id]);
-  if (IMDB_RATINGS[id])   subParts.push('★ ' + IMDB_RATINGS[id]);
   if (IMDB_RUNTIME[id])   subParts.push(IMDB_RUNTIME[id]);
+  if (IMDB_COUNTRY[id])  subParts.push(IMDB_COUNTRY[id]);
   document.getElementById('d-sub').textContent = subParts.join(' · ') || [f.y, f.cat].filter(Boolean).join(' · ');
 
   // Tags (35mm, Repertory, Silent Film)
   const tagsEl = document.getElementById('d-tags');
   const tagStyle = 'display:inline-block;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;padding:3px 8px;border-radius:3px;font-weight:500;border:1px solid;';
   const tags = [];
-  if (f['35mm'] === true)       tags.push(`<span style="${tagStyle}background:rgba(74,143,232,0.15);color:#93baf5;border-color:rgba(74,143,232,0.3);">35mm</span>`);
+  if (f['35mm'] === true)       tags.push(`<span class="tag tag-35mm">35mm</span>`);
   if (f.repertory === true)     tags.push(`<span style="${tagStyle}background:rgba(61,186,122,0.15);color:#3dba7a;border-color:rgba(61,186,122,0.3);">Repertory</span>`);
   if (f.cat === 'Silent Film')  tags.push(`<span style="${tagStyle}background:rgba(200,168,120,0.15);color:#c8a878;border-color:rgba(200,168,120,0.3);">Silent Film</span>`);
   if (tags.length) {
@@ -1274,7 +1278,7 @@ function renderStats() {
     const normTitle = title.replace(/\s*\(35mm\)/i,'').replace(/\s*\(\d{4}\)\s*$/, '').trim();
     if(!normTitle) return;
     const releaseYear = parseInt(IMDB_YEAR[id]) || null;
-    const rating = IMDB_RATINGS[id] || null;
+    const rating = null;
     raw.split(/[,/]/).forEach(name=>{
       const t = name.trim();
       if(!t || t === 'N/A') return;
@@ -1426,7 +1430,7 @@ function renderStats() {
     const normTitle = title.replace(/\s*\(35mm\)/i,'').replace(/\s*\(\d{4}\)\s*$/, '').trim();
     if (!normTitle) return;
     const releaseYear = parseInt(IMDB_YEAR[id]) || null;
-    const rating = IMDB_RATINGS[id] || null;
+    const rating = null;
     raw.split(',').slice(0, 3).forEach(name => {
       const t = name.trim();
       if (!t || t === 'N/A') return;
@@ -1517,7 +1521,6 @@ function _showDirectorModal(name, count, colorIndex, filmMap, photoUrl) {
         <tr>
           <th style="text-align:left;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:${faintCol};padding:7px 8px 7px 0;border-bottom:1px solid ${borderCol};font-weight:500;white-space:nowrap;">Year</th>
           <th style="text-align:left;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:${faintCol};padding:7px 8px;border-bottom:1px solid ${borderCol};font-weight:500;">Film</th>
-          <th style="text-align:right;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:${faintCol};padding:7px 0 7px 8px;border-bottom:1px solid ${borderCol};font-weight:500;white-space:nowrap;">IMDb</th>
         </tr>
       </thead>
       <tbody>
@@ -1528,7 +1531,6 @@ function _showDirectorModal(name, count, colorIndex, filmMap, photoUrl) {
               ${f.title}
               ${f.runs > 1 ? `<span style="display:inline-block;margin-left:6px;font-size:10px;padding:1px 6px;border-radius:10px;background:${color}18;color:${color};font-weight:500;">×${f.runs} runs</span>` : ''}
             </td>
-            <td style="padding:9px 0 9px 8px;text-align:right;color:${faintCol};white-space:nowrap;vertical-align:middle;font-size:12px;">${f.rating ? '★ ' + f.rating : ''}</td>
           </tr>`).join('')}
       </tbody>
     </table>` : '<p style="font-size:13px;color:var(--ink-faint);padding:1rem 0;">No film data available.</p>';
