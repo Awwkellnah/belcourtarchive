@@ -262,7 +262,7 @@ td { padding: 10px 12px; vertical-align: middle; }
           <li>Concerts</li>
           <li>Seminars</li>
           <li>Rental Screenings</li>
-          <li>Film Festivals not put on by the Belcourt (NJFF, BANFF, REEL ROCK)</li>
+          <li>Film Festivals not programmed by the Belcourt (NJFF, BANFF, REEL ROCK)</li>
         </ul>
       </div>
 
@@ -339,7 +339,7 @@ td { padding: 10px 12px; vertical-align: middle; }
         <div class="chart-title" style="margin-bottom:0;">Films by country of origin</div>
         <select id="countryYearFilter" onchange="renderCountryChart()" style="font-size:14px;padding:6px 24px 6px 10px;">
           <option value="all">All years</option>
-          <option value="1925">1925–1949</option>
+          <option value="1925">1920s</option>
           <option value="1960">1960s</option>
           <option value="1970">1970s</option>
           <option value="1980">1980s</option>
@@ -1168,7 +1168,7 @@ function renderStats() {
         cc[t] = (cc[t]||0)+1;
       });
     });
-    const topC = Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,25);
+    const topC = Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,20);
     const maxC = topC[0] ? topC[0][1] : 1;
     const isLightNow = document.documentElement.classList.contains('light');
     const cBarFill = 'rgba(196,92,138,0.80)';
