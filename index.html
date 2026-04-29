@@ -402,8 +402,8 @@ td { padding: 10px 12px; vertical-align: middle; }
     <div class="detail-body" id="d-body"></div>
     <div class="detail-foot" style="display:flex;justify-content:space-between;align-items:center;">
       <div style="display:flex;gap:8px;align-items:center;">
-        <a id="d-imdb-link" href="#" target="_blank" style="display:none;font-size:12px;color:var(--blue);text-decoration:none;border:1px solid rgba(74,143,232,0.35);border-radius:4px;padding:6px 14px;" onmouseover="this.style.background='rgba(74,143,232,0.1)'" onmouseout="this.style.background='none'">IMDb ↗</a>
-        <a id="d-letterboxd-link" href="#" target="_blank" style="display:none;font-size:12px;color:#00c030;text-decoration:none;border:1px solid rgba(0,192,48,0.35);border-radius:4px;padding:6px 14px;" onmouseover="this.style.background='rgba(0,192,48,0.08)'" onmouseout="this.style.background='none'">Letterboxd ↗</a>
+        <a id="d-imdb-link" href="#" target="_blank" style="display:none;text-decoration:none;line-height:0;background:#f5c518;border-radius:4px;padding:5px 10px;opacity:1;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'"><img src="images/IMDb%20SVG/IMDb_PrimaryLogo_Black.svg" alt="IMDb" style="height:20px;width:auto;display:block;"></a>
+        <a id="d-letterboxd-link" href="#" target="_blank" style="display:none;text-decoration:none;line-height:0;background:#1b1f23;border:1px solid rgba(255,255,255,0.35);border-radius:4px;padding:5px 10px;opacity:1;transition:opacity 0.15s;" onmouseover="this.style.opacity='0.8'" onmouseout="this.style.opacity='1'"><img src="images/Letterboxd%20SVG/letterboxd-logo-h-neg-rgb.svg" alt="Letterboxd" style="height:20px;width:auto;display:block;"></a>
       </div>
       <button class="btn-close" onclick="closeDetail()">Close</button>
     </div>
