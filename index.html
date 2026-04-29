@@ -214,7 +214,7 @@ td { padding: 10px 12px; vertical-align: middle; }
             <th>Series</th>
           </tr>
         </thead>
-        <tbody id="tbody"></tbody>
+        <tbody id="tbody"><tr><td colspan="4" style="text-align:center;padding:2.5rem;color:var(--ink-faint);font-size:13px;">Loading…</td></tr></tbody>
       </table>
     </div>
     <div class="pagination">
@@ -559,7 +559,7 @@ document.addEventListener('DOMContentLoaded', function() {
       processData(results[0]);
     })
     .catch(function() {
-      // Fetch failed — leave the manual load screen visible
+      document.getElementById('tbody').innerHTML = '<tr><td colspan="4" style="text-align:center;padding:2.5rem;color:var(--ink-faint);font-size:13px;">Could not load data. Please refresh the page.</td></tr>';
     });
 });
 
