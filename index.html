@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta property="og:title" content="The Belcourt Theatre Film Archive - Nashville, Tennessee" />
 <meta property="og:description" content="An ongoing archive site - documenting every film screened at the Belcourt Theatre in Nashville since 1925. Browse today!" />
-<meta property="og:image" content="/og-image.jpg" />
+<meta property="og:image" content="https://belcourtfilmarchive.com/og-image.jpg" />
 <meta property="og:url" content="https://belcourtfilmarchive.com" />
 <meta property="og:type" content="website" />
 
@@ -13,6 +13,7 @@
 <meta name="twitter:card" content="summary_large_image" />
 
 <title>Belcourt Theatre — Film Archive</title>
+<link rel="preconnect" href="https://images.weserv.nl">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
 :root {
@@ -177,6 +178,43 @@ td { padding: 10px 12px; vertical-align: middle; }
 .btn-x:hover { border-color: var(--border-hover); color: var(--ink); }
 
 .hidden { display: none !important; }
+
+/* ON THIS DAY */
+.otd-section { border: 1px solid var(--border); border-radius: 6px; background: var(--bg-card); overflow: hidden; margin-bottom: 1.5rem; }
+.otd-header { display: flex; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.otd-heading { font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--blue); font-weight: 500; flex-shrink: 0; }
+.otd-datename { font-family: 'Playfair Display', serif; font-size: 15px; color: var(--ink); }
+.otd-browse-all { margin-left: auto; background: none; border: none; padding: 0; font-family: 'DM Sans', sans-serif; font-size: 11px; color: var(--blue); cursor: pointer; letter-spacing: 0.03em; flex-shrink: 0; }
+.otd-browse-all:hover { text-decoration: underline; }
+.otd-toggle-btn { background: none; border: none; padding: 0 0 0 12px; font-family: 'DM Sans', sans-serif; font-size: 11px; color: var(--ink-faint); cursor: pointer; flex-shrink: 0; border-left: 1px solid var(--border); margin-left: 12px; }
+.otd-toggle-btn:hover { color: var(--ink-light); }
+.otd-scroll { display: flex; gap: 10px; padding: 14px 16px; overflow-x: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.otd-card { flex-shrink: 0; width: 92px; cursor: pointer; border-radius: 4px; overflow: hidden; border: 1px solid var(--border); transition: border-color 0.15s, transform 0.12s; background: var(--bg); }
+.otd-card:hover { border-color: var(--blue); transform: translateY(-2px); }
+.otd-card-thumb { width: 100%; height: 125px; object-fit: cover; display: block; }
+.otd-card-ph { width: 100%; height: 125px; display: flex; align-items: center; justify-content: center; background: var(--bg-tag); font-size: 28px; font-family: 'Playfair Display', serif; color: var(--ink-faint); }
+.otd-card-body { padding: 6px 8px 8px; }
+.otd-card-year { font-size: 10px; color: var(--blue); font-weight: 500; }
+.otd-card-title { font-size: 11px; color: var(--ink-light); line-height: 1.35; margin-top: 2px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
+.otd-more-card { flex-shrink: 0; width: 92px; min-height: 170px; cursor: pointer; border-radius: 4px; border: 1px dashed var(--border); transition: border-color 0.15s, color 0.15s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; background: none; color: var(--ink-faint); }
+.otd-more-card:hover { border-color: var(--blue); color: var(--blue); }
+
+/* VIEW TOGGLE */
+.view-toggle { display: flex; gap: 2px; flex-shrink: 0; }
+.view-btn { width: 34px; height: 34px; border: 1px solid var(--border); background: var(--bg-card); border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--ink-faint); transition: border-color 0.15s, color 0.15s, background 0.15s; padding: 0; }
+.view-btn.active { border-color: var(--blue); color: var(--blue); background: rgba(74,143,232,0.08); }
+.view-btn:hover:not(.active) { border-color: var(--border-hover); color: var(--ink-light); }
+
+/* POSTER GRID */
+.poster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
+.poster-card { position: relative; border-radius: 4px; overflow: hidden; border: 1px solid var(--border); cursor: pointer; aspect-ratio: 2/3; background: var(--bg-tag); transition: border-color 0.15s, transform 0.12s; }
+.poster-card:hover { border-color: var(--blue); transform: translateY(-2px); }
+.poster-card:hover .poster-card-overlay { opacity: 1; }
+.poster-card-img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.poster-card-ph { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-family: 'Playfair Display', serif; font-style: italic; color: var(--ink-faint); text-align: center; padding: 12px; line-height: 1.5; }
+.poster-card-overlay { position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(transparent, rgba(0,0,0,0.88)); padding: 24px 8px 8px; opacity: 0; transition: opacity 0.15s; }
+.poster-card-title { font-size: 11px; color: #fff; line-height: 1.3; font-weight: 500; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; }
+.poster-card-year { font-size: 10px; color: rgba(255,255,255,0.6); margin-top: 2px; }
 </style>
 </head>
 <body>
@@ -192,6 +230,7 @@ td { padding: 10px 12px; vertical-align: middle; }
 </header>
 
 <div class="main">
+  <div id="otd-section" style="display:none;"></div>
   <div class="tabs">
     <button class="tab-btn active" onclick="showTab('list')">Browse</button>
     <button class="tab-btn" onclick="showTab('stats')">Statistics</button>
@@ -207,15 +246,21 @@ td { padding: 10px 12px; vertical-align: middle; }
       </div>
       <select id="fYear" onchange="onFilter()"><option value="">All years</option></select>
       <select id="fDecade" onchange="onFilter()"><option value="">All decades</option></select>
+      <select id="fGenre" onchange="onFilter()"><option value="">All genres</option></select>
       <select id="fSort" onchange="onFilter()">
         <option value="date-desc">Newest first</option>
         <option value="date-asc">Oldest first</option>
         <option value="run-desc">Longest run</option>
         <option value="alpha">A–Z</option>
       </select>
+      <div class="view-toggle">
+        <button class="view-btn active" id="view-table-btn" onclick="setView('table')" title="Table view"><svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="0" width="14" height="2.5" rx="1"/><rect x="0" y="5.5" width="14" height="2.5" rx="1"/><rect x="0" y="11" width="14" height="2.5" rx="1"/></svg></button>
+        <button class="view-btn" id="view-grid-btn" onclick="setView('grid')" title="Poster grid view"><svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><rect x="0" y="0" width="6" height="6" rx="1"/><rect x="8" y="0" width="6" height="6" rx="1"/><rect x="0" y="8" width="6" height="6" rx="1"/><rect x="8" y="8" width="6" height="6" rx="1"/></svg></button>
+      </div>
+      <button id="clear-btn" onclick="clearFilters()" style="display:none;padding:9px 14px;border:1px solid var(--border);background:var(--bg-card);border-radius:4px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--ink-faint);cursor:pointer;white-space:nowrap;transition:border-color 0.15s,color 0.15s;" onmouseover="this.style.borderColor='var(--border-hover)';this.style.color='var(--ink)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--ink-faint)'">&#x2715; Clear</button>
     </div>
     <div class="results-info" id="results-info"></div>
-    <div class="table-wrap">
+    <div class="table-wrap" id="table-wrap">
       <table>
         <thead>
           <tr>
@@ -228,6 +273,7 @@ td { padding: 10px 12px; vertical-align: middle; }
         <tbody id="tbody"><tr><td colspan="4" style="text-align:center;padding:2.5rem;color:var(--ink-faint);font-size:13px;">Loading…</td></tr></tbody>
       </table>
     </div>
+    <div id="grid-wrap" class="poster-grid" style="display:none;"></div>
     <div class="pagination">
       <div class="page-info" id="page-info"></div>
       <div class="page-btns" id="page-btns"></div>
@@ -475,6 +521,10 @@ function toggleTheme() {
 document.addEventListener('DOMContentLoaded', function() {
   const isLight = document.documentElement.classList.contains('light');
   document.getElementById('theme-btn').textContent = isLight ? '☽ Dark' : '☀ Light';
+  if (viewMode === 'grid') {
+    document.getElementById('view-table-btn').classList.remove('active');
+    document.getElementById('view-grid-btn').classList.add('active');
+  }
 });
 
 let ALL = [];
@@ -494,7 +544,10 @@ let IMDB_RATED     = {};
 let IMDB_ACTORS    = {};
 
 let filtered = [], page = 1, sortKey = 'o', sortDir = -1, currentDetailIdx = -1;
+let otdActive = false;
+let viewMode = localStorage.getItem('belcourt-view') || 'table';
 const PER = 50;
+let gridPER = PER;
 let statsRendered = false;
 
 function processData(data) {
@@ -596,8 +649,8 @@ function displayTitle(f) {
 }
 
 function init() {
-  // Reset year and decade dropdowns
-  ['fYear','fDecade'].forEach(function(id) {
+  // Reset year, decade, and genre dropdowns
+  ['fYear','fDecade','fGenre'].forEach(function(id) {
     const el = document.getElementById(id);
     while (el.options.length > 1) el.remove(1);
   });
@@ -609,6 +662,12 @@ function init() {
   const fd = document.getElementById('fDecade');
   decades.forEach(function(d) { const o=document.createElement('option'); o.value=d; o.textContent=d+'s'; fd.appendChild(o); });
 
+  const genreCounts = {};
+  ALL.forEach(function(f) { parseGenres(f).forEach(function(g) { genreCounts[g] = (genreCounts[g] || 0) + 1; }); });
+  const allGenres = Object.keys(genreCounts).filter(function(g) { return genreCounts[g] > 10; }).sort();
+  const fg = document.getElementById('fGenre');
+  allGenres.forEach(function(g) { const o=document.createElement('option'); o.value=g; o.textContent=g; fg.appendChild(o); });
+
   // Header stats
   const withRun = ALL.filter(function(f){return f.r&&f.r<400;});
   const avg = Math.round(withRun.reduce(function(s,f){return s+f.r;},0)/withRun.length);
@@ -617,7 +676,11 @@ function init() {
   // Reset charts if stats were previously rendered
   statsRendered = false;
 
+  const urlId = new URLSearchParams(location.search).get('id');
+  applyURLParams();
   onFilter();
+  initOnThisDay();
+  openFromURLId(urlId);
 }
 
 
@@ -630,10 +693,32 @@ function fmt(d) {
   return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(p[1])-1]+' '+parseInt(p[2])+', '+p[0];
 }
 
+function updateClearBtn() {
+  const btn = document.getElementById('clear-btn');
+  if (!btn) return;
+  const active = otdActive ||
+    document.getElementById('search').value !== '' ||
+    document.getElementById('fYear').value !== '' ||
+    document.getElementById('fDecade').value !== '' ||
+    document.getElementById('fGenre').value !== '';
+  btn.style.display = active ? '' : 'none';
+}
+
+function clearFilters() {
+  document.getElementById('search').value = '';
+  document.getElementById('fYear').value = '';
+  document.getElementById('fDecade').value = '';
+  document.getElementById('fGenre').value = '';
+  otdActive = false;
+  onFilter();
+}
+
 function onFilter() {
+  otdActive = false;
   const q    = document.getElementById('search').value.toLowerCase();
   const yr   = document.getElementById('fYear').value;
   const dc   = document.getElementById('fDecade').value;
+  const gn   = document.getElementById('fGenre').value;
   const sort = document.getElementById('fSort').value;
 
   filtered = ALL.filter(f => {
@@ -642,6 +727,7 @@ function onFilter() {
     if(q && ![(f.t||''),(f.s||''),(f.n||''),(f.co||''),dirStr,actorStr].some(v=>v.toLowerCase().includes(q))) return false;
     if(yr && f.y != yr) return false;
     if(dc && Math.floor(f.y/10)*10 != dc) return false;
+    if(gn && !parseGenres(f).includes(gn)) return false;
     return true;
   });
 
@@ -652,6 +738,8 @@ function onFilter() {
 
   page = 1;
   renderTable();
+  updateClearBtn();
+  updateURL();
 }
 
 function sortBy(key) {
@@ -667,6 +755,9 @@ function sortBy(key) {
 }
 
 function renderTable() {
+  if (viewMode === 'grid') { renderGrid(); return; }
+  document.getElementById('grid-wrap').style.display = 'none';
+  document.getElementById('table-wrap').style.display = '';
   const start = (page-1)*PER;
   const slice = filtered.slice(start, start+PER);
   document.getElementById('tbody').innerHTML = slice.map((f,i) => `
@@ -681,8 +772,47 @@ function renderTable() {
   renderPagination();
 }
 
+function renderGrid() {
+  document.getElementById('table-wrap').style.display = 'none';
+  const gridWrap = document.getElementById('grid-wrap');
+  gridWrap.style.display = '';
+  const cols = Math.max(2, Math.floor((gridWrap.clientWidth + 10) / (120 + 10)));
+  gridPER = Math.floor(PER / cols) * cols;
+  const start = (page - 1) * gridPER;
+  const slice = filtered.slice(start, start + gridPER);
+  gridWrap.innerHTML = slice.map(function(f, i) {
+    const id = String(f.id);
+    const posterUrl = IMDB_POSTERS[id];
+    const title = displayTitle(f);
+    const year = f.y || '';
+    const safeTitle = title.replace(/"/g, '&quot;');
+    const thumb = posterUrl
+      ? '<img class="poster-card-img" src="https://images.weserv.nl/?url=' + encodeURIComponent(posterUrl) + '&w=140&h=210&fit=cover&output=webp" alt="' + safeTitle + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' +
+        '<div class="poster-card-ph" style="display:none">' + title + '</div>'
+      : '<div class="poster-card-ph">' + title + '</div>';
+    return '<div class="poster-card" onclick="openDetail(' + (start + i) + ')" title="' + safeTitle + ' (' + year + ')">' +
+      thumb +
+      '<div class="poster-card-overlay">' +
+        '<div class="poster-card-title">' + title + '</div>' +
+        '<div class="poster-card-year">' + year + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  document.getElementById('results-info').innerHTML =
+    'Showing <strong>' + (start + 1) + '–' + Math.min(start + gridPER, filtered.length) + '</strong> of <strong>' + filtered.length.toLocaleString() + '</strong> films';
+  renderPagination();
+}
+
+function setView(mode) {
+  viewMode = mode;
+  localStorage.setItem('belcourt-view', mode);
+  document.getElementById('view-table-btn').classList.toggle('active', mode === 'table');
+  document.getElementById('view-grid-btn').classList.toggle('active', mode === 'grid');
+  renderTable();
+}
+
 function renderPagination() {
-  const total = Math.ceil(filtered.length/PER);
+  const total = Math.ceil(filtered.length / (viewMode === 'grid' ? gridPER : PER));
   document.getElementById('page-info').textContent = `Page ${page} of ${total}`;
   let pages=[1];
   if(page>3) pages.push('...');
@@ -797,7 +927,7 @@ function openDetail(idx) {
   };
 
   if (posterUrl) {
-    const proxied = 'https://images.weserv.nl/?url=' + encodeURIComponent(posterUrl) + '&w=200&h=300&fit=cover';
+    const proxied = 'https://images.weserv.nl/?url=' + encodeURIComponent(posterUrl) + '&w=200&h=300&fit=cover&output=webp';
     posterImg.src = proxied;
     posterImg.alt = displayTitle(f);
     posterImg.onerror = function() { this.style.display = 'none'; if (!adImg.src) posterEl.style.display = 'none'; };
@@ -828,12 +958,17 @@ function openDetail(idx) {
   }
 
   document.getElementById('overlay').classList.add('open');
+  updateURL();
 }
 
-function closeDetail() { document.getElementById('overlay').classList.remove('open'); }
+function closeDetail() {
+  document.getElementById('overlay').classList.remove('open');
+  updateURL();
+}
 
 document.addEventListener('keydown', function(e) {
   if (!document.getElementById('overlay').classList.contains('open')) return;
+  if (e.key === 'Escape')     { closeDetail(); }
   if (e.key === 'ArrowLeft')  { e.preventDefault(); navigateDetail(-1); }
   if (e.key === 'ArrowRight') { e.preventDefault(); navigateDetail(1); }
 });
@@ -878,6 +1013,23 @@ Chart.register({
     ctx.restore();
   }
 });
+
+const GENRE_NORM = { 'Action': 'Action/Adventure', 'Adventure': 'Action/Adventure' };
+function parseGenres(f) {
+  if (!f.genre) return [];
+  return [...new Set(f.genre.split(/[,/]/).map(g => GENRE_NORM[g.trim()] || g.trim()).filter(Boolean))];
+}
+
+// Lazy chart observer — renders each chart only when scrolled into view
+const _pendingCharts = new Map();
+const _chartObserver = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    if (!entry.isIntersecting) return;
+    const fn = _pendingCharts.get(entry.target);
+    if (fn) { fn(); _pendingCharts.delete(entry.target); _chartObserver.unobserve(entry.target); }
+  });
+}, { rootMargin: '200px 0px' });
+function observeChart(el, fn) { if (!el) return; _pendingCharts.set(el, fn); _chartObserver.observe(el); }
 
 // STATS
 function renderStats() {
@@ -967,39 +1119,43 @@ function renderStats() {
   const yc = {};
   ALL.forEach(f=>{ if(f.y) yc[f.y]=(yc[f.y]||0)+1; });
   const ys = Object.keys(yc).sort();
-  new Chart(document.getElementById('yearChart'), {
-    type:'line',
-    data:{ labels:ys, datasets:[{
-      data:ys.map(y=>yc[y]),
-      backgroundColor:'rgba(74,143,232,0.13)',
-      borderColor:'rgba(74,143,232,0.9)',
-      borderWidth:2,
-      fill:true,
-      tension:0.35,
-      pointRadius:0,
-      pointHoverRadius:4,
-      pointHoverBackgroundColor:'rgba(74,143,232,1)'
-    }] },
-    options:{ responsive:true, maintainAspectRatio:false, events:['mousemove','mouseout','click','touchstart','touchmove'],
-      interaction:{ mode:'index', intersect:false },
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+' films'}}},
-      scales:{ x:{ticks:{font:{size:10},color:tickCol,autoSkip:true,maxTicksLimit:25,maxRotation:45},grid:{display:false}}, y:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}} } }
+  observeChart(document.getElementById('yearChart'), function() {
+    new Chart(document.getElementById('yearChart'), {
+      type:'line',
+      data:{ labels:ys, datasets:[{
+        data:ys.map(y=>yc[y]),
+        backgroundColor:'rgba(74,143,232,0.13)',
+        borderColor:'rgba(74,143,232,0.9)',
+        borderWidth:2,
+        fill:true,
+        tension:0.35,
+        pointRadius:0,
+        pointHoverRadius:4,
+        pointHoverBackgroundColor:'rgba(74,143,232,1)'
+      }] },
+      options:{ responsive:true, maintainAspectRatio:false, events:['mousemove','mouseout','click','touchstart','touchmove'],
+        interaction:{ mode:'index', intersect:false },
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+' films'}}},
+        scales:{ x:{ticks:{font:{size:10},color:tickCol,autoSkip:true,maxTicksLimit:25,maxRotation:45},grid:{display:false}}, y:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}} } }
+    });
   });
 
   // Films per decade — vertical bar chart
   const dc = {};
   ALL.forEach(f=>{ if(f.y&&f.y>=1900){ const d=Math.floor(f.y/10)*10; dc[d]=(dc[d]||0)+1; } });
   const ds = Object.keys(dc).sort();
-  new Chart(document.getElementById('decadeChart'), {
-    type:'bar',
-    data:{
-      labels:ds.map(d=>d+'s'),
-      datasets:[{ data:ds.map(d=>dc[d]), backgroundColor:C_DECADE[0], borderColor:C_DECADE[1], borderWidth:1 }]
-    },
-    options:{ responsive:true, maintainAspectRatio:false, events:['mousemove','mouseout','click','touchstart','touchmove'],
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toLocaleString()+' films'}}},
-      scales:{ x:{ticks:{font:{size:11},color:tickCol},grid:{display:false}}, y:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}} }
-    }
+  observeChart(document.getElementById('decadeChart'), function() {
+    new Chart(document.getElementById('decadeChart'), {
+      type:'bar',
+      data:{
+        labels:ds.map(d=>d+'s'),
+        datasets:[{ data:ds.map(d=>dc[d]), backgroundColor:C_DECADE[0], borderColor:C_DECADE[1], borderWidth:1 }]
+      },
+      options:{ responsive:true, maintainAspectRatio:false, events:['mousemove','mouseout','click','touchstart','touchmove'],
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toLocaleString()+' films'}}},
+        scales:{ x:{ticks:{font:{size:11},color:tickCol},grid:{display:false}}, y:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}} }
+      }
+    });
   });
 
   // Longest runs
@@ -1046,7 +1202,7 @@ function renderStats() {
     });
     document.getElementById('runMoreWrap').style.display = runChartLimit < Math.min(sorted.length, RUN_CHART_MAX) ? '' : 'none';
   };
-  renderRunChart();
+  observeChart(document.getElementById('runWrap'), renderRunChart);
 
   // Most repeated viewings — group by resolved display title, count entries
   const rc = {};
@@ -1083,14 +1239,7 @@ function renderStats() {
     });
     document.getElementById('repeatMoreWrap').style.display = repeatChartLimit < Math.min(allTopR.length, REPEAT_CHART_MAX) ? '' : 'none';
   };
-  renderRepeatChart();
-
-  // --- Genre helpers ---
-  const GENRE_NORM = { 'Action': 'Action/Adventure', 'Adventure': 'Action/Adventure' };
-  function parseGenres(f) {
-    if(!f.genre) return [];
-    return [...new Set(f.genre.split(/[,/]/).map(g => GENRE_NORM[g.trim()] || g.trim()).filter(Boolean))];
-  }
+  observeChart(document.getElementById('repeatWrap'), renderRepeatChart);
 
   // --- Genre helpers ---
   const gc = {};
@@ -1120,7 +1269,7 @@ function renderStats() {
   const gdWrap = document.getElementById('genreDecadeWrap');
   gdWrap.innerHTML = '';
 
-  top8genres.forEach((genre, i) => {
+  observeChart(gdWrap, function() { top8genres.forEach((genre, i) => {
     const {r,g,b} = GENRE_SM_COLORS[i] || {r:128,g:128,b:128};
     const borderCol = `rgb(${r},${g},${b})`;
     const fillCol   = `rgba(${r},${g},${b},0.20)`;
@@ -1188,7 +1337,7 @@ function renderStats() {
         }
       }
     });
-  });
+  }); }); // end top8genres.forEach / observeChart
 
   // Films by country — HTML flag visualization (top 25)
   const COUNTRY_NORMALIZE = {
@@ -1228,26 +1377,28 @@ function renderStats() {
     if (f.repertory === true) repByYear[f.y].rep++; else repByYear[f.y].nr++;
   });
   const repYears = Object.keys(repByYear).map(Number).filter(yr => repByYear[yr].rep + repByYear[yr].nr >= 3).sort((a,b) => a-b);
-  new Chart(document.getElementById('repertoryTrendChart'), {
-    type: 'bar',
-    data: {
-      labels: repYears,
-      datasets: [
-        { label: 'Repertory', data: repYears.map(yr => { const d=repByYear[yr]; return parseFloat((d.rep/(d.rep+d.nr)*100).toFixed(1)); }), backgroundColor: 'rgba(124,92,232,0.75)', borderWidth: 0 },
-        { label: 'New release', data: repYears.map(yr => { const d=repByYear[yr]; return parseFloat((d.nr/(d.rep+d.nr)*100).toFixed(1)); }), backgroundColor: 'rgba(74,143,232,0.75)', borderWidth: 0 },
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: {
-        legend: { display: true, position: 'top', labels: { font: { size: 11 }, color: yTickCol, boxWidth: 12 } },
-        tooltip: { callbacks: { label: c => c.dataset.label + ': ' + c.raw + '%' } }
+  observeChart(document.getElementById('repertoryTrendChart'), function() {
+    new Chart(document.getElementById('repertoryTrendChart'), {
+      type: 'bar',
+      data: {
+        labels: repYears,
+        datasets: [
+          { label: 'Repertory', data: repYears.map(yr => { const d=repByYear[yr]; return parseFloat((d.rep/(d.rep+d.nr)*100).toFixed(1)); }), backgroundColor: 'rgba(124,92,232,0.75)', borderWidth: 0 },
+          { label: 'New release', data: repYears.map(yr => { const d=repByYear[yr]; return parseFloat((d.nr/(d.rep+d.nr)*100).toFixed(1)); }), backgroundColor: 'rgba(74,143,232,0.75)', borderWidth: 0 },
+        ]
       },
-      scales: {
-        x: { stacked: true, ticks: { font: { size: 10 }, color: tickCol }, grid: { color: gridCol } },
-        y: { stacked: true, min: 0, max: 100, ticks: { font: { size: 10 }, color: tickCol, callback: v => v + '%' }, grid: { color: gridCol } }
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'top', labels: { font: { size: 11 }, color: yTickCol, boxWidth: 12 } },
+          tooltip: { callbacks: { label: c => c.dataset.label + ': ' + c.raw + '%' } }
+        },
+        scales: {
+          x: { stacked: true, ticks: { font: { size: 10 }, color: tickCol }, grid: { color: gridCol } },
+          y: { stacked: true, min: 0, max: 100, ticks: { font: { size: 10 }, color: tickCol, callback: v => v + '%' }, grid: { color: gridCol } }
+        }
       }
-    }
+    });
   });
 
   window.renderCountryChart = function() {
@@ -1290,25 +1441,27 @@ function renderStats() {
         }).join('')}
       </div>` : `<div style="padding:2rem;text-align:center;color:var(--ink-faint);font-size:13px;">No data for this period.</div>`;
   };
-  renderCountryChart();
+  observeChart(document.getElementById('countryWrap'), renderCountryChart);
 
   // MPAA rating breakdown
   const mpaaOrder=['G','PG','PG-13','R','NC-17','NR'];
   const mpaaCounts={};
   ALL.forEach(f=>{ let rated=IMDB_RATED[String(f.id)]; if(!rated) return; if(rated==='Not Rated'||rated==='Unrated') rated='NR'; if(!mpaaOrder.includes(rated)) return; mpaaCounts[rated]=(mpaaCounts[rated]||0)+1; });
   const mpaaEntries=Object.entries(mpaaCounts).sort((a,b)=>mpaaOrder.indexOf(a[0])-mpaaOrder.indexOf(b[0]));
-  const mpaaWrap=document.getElementById('mpaaWrap');
-  if(mpaaEntries.length){
-    mpaaWrap.style.height=Math.max(mpaaEntries.length*26+60,120)+'px';
-    const mpaaCanvas=document.createElement('canvas'); mpaaWrap.appendChild(mpaaCanvas);
-    const mpaaColors={'G':'rgba(61,186,122,0.75)','PG':'rgba(74,143,232,0.75)','PG-13':'rgba(232,162,58,0.75)','R':'rgba(196,92,138,0.75)','NC-17':'rgba(232,108,74,0.75)','NR':'rgba(124,92,232,0.75)','Passed':'rgba(58,187,184,0.75)','Approved':'rgba(184,122,176,0.75)'};
-    new Chart(mpaaCanvas,{
-      type:'bar',
-      data:{ labels:mpaaEntries.map(e=>e[0]), datasets:[{data:mpaaEntries.map(e=>e[1]), backgroundColor:mpaaEntries.map(e=>mpaaColors[e[0]]||'rgba(150,150,150,0.6)'), borderWidth:0}] },
-      options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toLocaleString()+' film'+(c.raw===1?'':'s')}}},
-        scales:{ x:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:11},color:yTickCol},grid:{display:false}} } }
-    });
-  } else { mpaaWrap.innerHTML='<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No MPAA rating data found.</p>'; }
+  observeChart(document.getElementById('mpaaWrap'), function() {
+    const mpaaWrap=document.getElementById('mpaaWrap');
+    if(mpaaEntries.length){
+      mpaaWrap.style.height=Math.max(mpaaEntries.length*26+60,120)+'px';
+      const mpaaCanvas=document.createElement('canvas'); mpaaWrap.appendChild(mpaaCanvas);
+      const mpaaColors={'G':'rgba(61,186,122,0.75)','PG':'rgba(74,143,232,0.75)','PG-13':'rgba(232,162,58,0.75)','R':'rgba(196,92,138,0.75)','NC-17':'rgba(232,108,74,0.75)','NR':'rgba(124,92,232,0.75)','Passed':'rgba(58,187,184,0.75)','Approved':'rgba(184,122,176,0.75)'};
+      new Chart(mpaaCanvas,{
+        type:'bar',
+        data:{ labels:mpaaEntries.map(e=>e[0]), datasets:[{data:mpaaEntries.map(e=>e[1]), backgroundColor:mpaaEntries.map(e=>mpaaColors[e[0]]||'rgba(150,150,150,0.6)'), borderWidth:0}] },
+        options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toLocaleString()+' film'+(c.raw===1?'':'s')}}},
+          scales:{ x:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:11},color:yTickCol},grid:{display:false}} } }
+      });
+    } else { mpaaWrap.innerHTML='<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No MPAA rating data found.</p>'; }
+  });
 
   // Top 15 languages
   const langCount = {};
@@ -1321,47 +1474,53 @@ function renderStats() {
     });
   });
   const topLangs = Object.entries(langCount).sort((a,b)=>b[1]-a[1]).slice(0,15);
-  const langWrap = document.getElementById('languageWrap');
-  if (topLangs.length) {
-    langWrap.style.height = Math.max(topLangs.length * 26 + 60, 160) + 'px';
-    const langCanvas = document.createElement('canvas');
-    langWrap.appendChild(langCanvas);
-    new Chart(langCanvas, {
-      type: 'bar',
-      data: {
-        labels: topLangs.map(e => e[0]),
-        datasets: [{ data: topLangs.map(e => e[1]), backgroundColor: topLangs.map((_,i) => `rgba(74,143,232,${(1-(i/Math.max(topLangs.length-1,1))*0.72).toFixed(2)})`), borderColor: topLangs.map((_,i) => `rgba(74,143,232,${(1-(i/Math.max(topLangs.length-1,1))*0.6).toFixed(2)})`), borderWidth: 1 }]
-      },
-      options: {
-        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw.toLocaleString() + ' film' + (c.raw === 1 ? '' : 's') } } },
-        scales: { x: { ticks: { font: { size: 10 }, color: tickCol }, grid: { color: gridCol } }, y: { ticks: { font: { size: 11 }, color: yTickCol }, grid: { display: false } } }
-      }
-    });
-  } else {
-    langWrap.innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No language data found in this archive file.</p>';
-  }
+  observeChart(document.getElementById('languageWrap'), function() {
+    const langWrap = document.getElementById('languageWrap');
+    if (topLangs.length) {
+      langWrap.style.height = Math.max(topLangs.length * 26 + 60, 160) + 'px';
+      const langCanvas = document.createElement('canvas');
+      langWrap.appendChild(langCanvas);
+      new Chart(langCanvas, {
+        type: 'bar',
+        data: {
+          labels: topLangs.map(e => e[0]),
+          datasets: [{ data: topLangs.map(e => e[1]), backgroundColor: topLangs.map((_,i) => `rgba(74,143,232,${(1-(i/Math.max(topLangs.length-1,1))*0.72).toFixed(2)})`), borderColor: topLangs.map((_,i) => `rgba(74,143,232,${(1-(i/Math.max(topLangs.length-1,1))*0.6).toFixed(2)})`), borderWidth: 1 }]
+        },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw.toLocaleString() + ' film' + (c.raw === 1 ? '' : 's') } } },
+          scales: { x: { ticks: { font: { size: 10 }, color: tickCol }, grid: { color: gridCol } }, y: { ticks: { font: { size: 11 }, color: yTickCol }, grid: { display: false } } }
+        }
+      });
+    } else {
+      langWrap.innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No language data found in this archive file.</p>';
+    }
+  });
 
   // Runtime distribution
   const rtBuckets=[{label:'Under 60 min',min:0,max:60},{label:'60–89 min',min:60,max:90},{label:'90–104 min',min:90,max:105},{label:'105–119 min',min:105,max:120},{label:'120–149 min',min:120,max:150},{label:'150+ min',min:150,max:Infinity}];
   const rtCounts=rtBuckets.map(()=>0);
   ALL.forEach(f=>{ const rt=parseInt(IMDB_RUNTIME[String(f.id)]); if(!rt||rt<=0||rt>600) return; const i=rtBuckets.findIndex(b=>rt>=b.min&&rt<b.max); if(i!==-1) rtCounts[i]++; });
-  new Chart(document.getElementById('runtimeDistChart'),{
-    type:'bar',
-    data:{ labels:rtBuckets.map(b=>b.label), datasets:[{data:rtCounts, backgroundColor:'rgba(61,186,122,0.70)', borderColor:'rgba(61,186,122,1)', borderWidth:1}] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toLocaleString()+' film'+(c.raw===1?'':'s')}}},
-      scales:{ x:{ticks:{font:{size:11},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}} } }
+  observeChart(document.getElementById('runtimeDistChart'), function() {
+    new Chart(document.getElementById('runtimeDistChart'),{
+      type:'bar',
+      data:{ labels:rtBuckets.map(b=>b.label), datasets:[{data:rtCounts, backgroundColor:'rgba(61,186,122,0.70)', borderColor:'rgba(61,186,122,1)', borderWidth:1}] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toLocaleString()+' film'+(c.raw===1?'':'s')}}},
+        scales:{ x:{ticks:{font:{size:11},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}} } }
+    });
   });
 
   // Age at screening
   const ageBuckets=[{label:'New (0–1 yr)',min:0,max:2},{label:'2–3 years',min:2,max:4},{label:'4–9 years',min:4,max:10},{label:'10–19 years',min:10,max:20},{label:'20–29 years',min:20,max:30},{label:'30–49 years',min:30,max:50},{label:'50+ years',min:50,max:Infinity}];
   const ageCounts=ageBuckets.map(()=>0);
   ALL.forEach(f=>{ if(!f.y) return; const imdbYr=parseInt(IMDB_YEAR[String(f.id)]); if(!imdbYr) return; const gap=f.y-imdbYr; if(gap<0||gap>200) return; const i=ageBuckets.findIndex(b=>gap>=b.min&&gap<b.max); if(i!==-1) ageCounts[i]++; });
-  new Chart(document.getElementById('ageAtScreeningChart'),{
-    type:'bar',
-    data:{ labels:ageBuckets.map(b=>b.label), datasets:[{data:ageCounts, backgroundColor:'rgba(232,108,74,0.70)', borderColor:'rgba(232,108,74,1)', borderWidth:1}] },
-    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toLocaleString()+' film'+(c.raw===1?'':'s')}}},
-      scales:{ x:{ticks:{font:{size:11},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}} } }
+  observeChart(document.getElementById('ageAtScreeningChart'), function() {
+    new Chart(document.getElementById('ageAtScreeningChart'),{
+      type:'bar',
+      data:{ labels:ageBuckets.map(b=>b.label), datasets:[{data:ageCounts, backgroundColor:'rgba(232,108,74,0.70)', borderColor:'rgba(232,108,74,1)', borderWidth:1}] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toLocaleString()+' film'+(c.raw===1?'':'s')}}},
+        scales:{ x:{ticks:{font:{size:11},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}} } }
+    });
   });
 
   // Most screened directors — card grid (top 20, unique titles only)
@@ -1403,6 +1562,7 @@ function renderStats() {
     '#4a8fe8','#e8a23a','#3dba7a','#c45c8a','#7c5ce8',
     '#3abbb8','#e86c4a','#2d7abf','#b87ab0','#7ab87a',
   ];
+  observeChart(document.getElementById('directorWrap'), function() {
   if(topD.length) {
     document.getElementById('directorWrap').style.height = 'auto';
     document.getElementById('directorWrap').innerHTML = `
@@ -1429,6 +1589,7 @@ function renderStats() {
   } else {
     document.getElementById('directorWrap').innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No director data found in this archive file.</p>';
   }
+  }); // end observeChart directorWrap
 
   // Most screened female directors
   const FEMALE_DIRECTORS = new Set([
@@ -1489,6 +1650,7 @@ function renderStats() {
     .slice(0,20);
   window.TOP_FEMALE_DIRECTORS = topFemale;
 
+  observeChart(document.getElementById('femaleDirectorWrap'), function() {
   const femWrap = document.getElementById('femaleDirectorWrap');
   if (topFemale.length) {
     femWrap.innerHTML = `
@@ -1515,6 +1677,7 @@ function renderStats() {
   } else {
     femWrap.innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No female directors found in this archive file. Director data may not be loaded.</p>';
   }
+  }); // end observeChart femaleDirectorWrap
 
   // Top 20 actors by distinct film appearances
   const actorFilmMap = {};
@@ -1555,6 +1718,7 @@ function renderStats() {
     '#3abbb8','#c45c8a','#4a8fe8','#e8a23a','#7c5ce8',
     '#3dba7a','#e86c4a','#b87ab0','#2d7abf','#7ab87a',
   ];
+  observeChart(document.getElementById('actorWrap'), function() {
   const actorWrap = document.getElementById('actorWrap');
   if (topActors.length) {
     actorWrap.innerHTML = `
@@ -1581,6 +1745,7 @@ function renderStats() {
   } else {
     actorWrap.innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No actor data found. Make sure belcourtactors.json is present.</p>';
   }
+  }); // end observeChart actorWrap
 }
 
 const DIR_MODAL_COLORS = ['#4a8fe8','#e8a23a','#3dba7a','#c45c8a','#7c5ce8','#3abbb8','#e86c4a','#2d7abf','#b87ab0','#7ab87a'];
@@ -1694,6 +1859,154 @@ function applyPersonPhoto(el, url, color) {
   el.innerHTML = '<img src="' + url + '" alt="" style="width:100%;height:100%;object-fit:cover;object-position:top;" onerror="this.parentElement.dataset.err=\'1\'">';
   el.style.background = 'transparent';
   el.style.border = '2px solid ' + color + '44';
+}
+
+function initOnThisDay() {
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const todayMD = mm + '-' + dd;
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const dateLabel = monthNames[now.getMonth()] + ' ' + now.getDate();
+
+  const otdFilms = ALL.filter(function(f) {
+    if (!f.o || !f.c) return false;
+    const oMD = f.o.slice(5);
+    const cMD = f.c.slice(5);
+    if (oMD <= cMD) return oMD <= todayMD && todayMD <= cMD;
+    return todayMD >= oMD || todayMD <= cMD; // cross-year run
+  }).sort(function(a, b) { return (a.o || '').localeCompare(b.o || ''); });
+
+  if (!otdFilms.length) return;
+
+  window.OTD_FILMS = otdFilms;
+  window.OTD_DATE_LABEL = dateLabel;
+
+  const withPoster = otdFilms.filter(function(f) { return !!IMDB_POSTERS[String(f.id)]; });
+  const withoutPoster = otdFilms.filter(function(f) { return !IMDB_POSTERS[String(f.id)]; });
+  const displayFilms = withPoster.concat(withoutPoster).slice(0, 12);
+  window.OTD_DISPLAY_FILMS = displayFilms;
+
+  const moreCount = otdFilms.length - displayFilms.length;
+
+  const section = document.getElementById('otd-section');
+  section.style.display = '';
+  section.innerHTML =
+    '<div class="otd-section">' +
+      '<div class="otd-header">' +
+        '<span class="otd-heading">On this day</span>' +
+        '<span class="otd-datename"> ' + dateLabel + '</span>' +
+        '<button class="otd-browse-all" onclick="browseAllOTD()">Browse all ' + otdFilms.length + ' →</button>' +
+        '<button class="otd-toggle-btn" id="otd-toggle" onclick="toggleOTD()">Collapse</button>' +
+      '</div>' +
+      '<div class="otd-scroll" id="otd-scroll">' +
+        displayFilms.map(function(f, i) {
+          const id = String(f.id);
+          const posterUrl = IMDB_POSTERS[id];
+          const title = displayTitle(f);
+          const year = f.o ? f.o.slice(0, 4) : (f.y || '?');
+          const safeTitle = title.replace(/"/g, '&quot;');
+          const thumb = posterUrl
+            ? '<img class="otd-card-thumb" src="https://images.weserv.nl/?url=' + encodeURIComponent(posterUrl) + '&w=100&h=130&fit=cover&output=webp" alt="' + safeTitle + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' +
+              '<div class="otd-card-ph" style="display:none">' + (title[0] || '?') + '</div>'
+            : '<div class="otd-card-ph">' + (title[0] || '?') + '</div>';
+          return '<div class="otd-card" onclick="openOTDCard(' + i + ')" title="' + safeTitle + ' (' + year + ')">' +
+            thumb +
+            '<div class="otd-card-body">' +
+              '<div class="otd-card-year">' + year + '</div>' +
+              '<div class="otd-card-title">' + title + '</div>' +
+            '</div></div>';
+        }).join('') +
+        (moreCount > 0
+          ? '<div class="otd-more-card" onclick="browseAllOTD()" title="See all ' + otdFilms.length + ' films">' +
+              '<div style="font-size:20px;font-family:\'Playfair Display\',serif;">+' + moreCount + '</div>' +
+              '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;text-align:center;">Browse all →</div>' +
+            '</div>'
+          : '') +
+      '</div>' +
+    '</div>';
+
+  if (localStorage.getItem('belcourt-otd-collapsed') === '1') {
+    document.getElementById('otd-scroll').style.display = 'none';
+    document.getElementById('otd-toggle').textContent = 'Expand';
+  }
+}
+
+function toggleOTD() {
+  const scroll = document.getElementById('otd-scroll');
+  const btn = document.getElementById('otd-toggle');
+  if (!scroll || !btn) return;
+  const collapsing = scroll.style.display !== 'none';
+  scroll.style.display = collapsing ? 'none' : '';
+  btn.textContent = collapsing ? 'Expand' : 'Collapse';
+  localStorage.setItem('belcourt-otd-collapsed', collapsing ? '1' : '');
+}
+
+function openOTDCard(cardIdx) {
+  const film = (window.OTD_DISPLAY_FILMS || [])[cardIdx];
+  if (!film) return;
+  const otdIdx = (window.OTD_FILMS || []).findIndex(function(f) { return f.id === film.id; });
+  openOTDFilm(otdIdx);
+}
+
+function openOTDFilm(otdIdx) {
+  const otdFilms = window.OTD_FILMS || [];
+  if (otdIdx < 0 || otdIdx >= otdFilms.length) return;
+  filtered = otdFilms.slice();
+  page = Math.floor(otdIdx / PER) + 1;
+  renderTable();
+  openDetail(otdIdx);
+}
+
+function browseAllOTD() {
+  filtered = (window.OTD_FILMS || []).slice();
+  otdActive = true;
+  page = 1;
+  renderTable();
+  document.getElementById('results-info').innerHTML =
+    'Showing all <strong>' + filtered.length + '</strong> films that played on <strong>' + (window.OTD_DATE_LABEL || 'this date') + '</strong> in Belcourt history';
+  updateClearBtn();
+  showTab('list');
+}
+
+function updateURL() {
+  const params = new URLSearchParams();
+  const search = document.getElementById('search').value;
+  const year   = document.getElementById('fYear').value;
+  const decade = document.getElementById('fDecade').value;
+  const genre  = document.getElementById('fGenre').value;
+  const sort   = document.getElementById('fSort').value;
+  if (search) params.set('search', search);
+  if (year)   params.set('year', year);
+  if (decade) params.set('decade', decade);
+  if (genre)  params.set('genre', genre);
+  if (sort && sort !== 'date-desc') params.set('sort', sort);
+  if (document.getElementById('overlay').classList.contains('open') && currentDetailIdx >= 0) {
+    const film = filtered[currentDetailIdx];
+    if (film) params.set('id', film.id);
+  }
+  const qs = params.toString();
+  history.replaceState(null, '', qs ? '?' + qs : location.pathname);
+}
+
+function applyURLParams() {
+  const params = new URLSearchParams(location.search);
+  if (params.get('search')) document.getElementById('search').value = params.get('search');
+  if (params.get('year'))   document.getElementById('fYear').value   = params.get('year');
+  if (params.get('decade')) document.getElementById('fDecade').value = params.get('decade');
+  if (params.get('genre'))  document.getElementById('fGenre').value  = params.get('genre');
+  if (params.get('sort'))   document.getElementById('fSort').value   = params.get('sort');
+}
+
+function openFromURLId(id) {
+  if (!id) return;
+  let idx = filtered.findIndex(function(f) { return String(f.id) === id; });
+  if (idx === -1) {
+    filtered = ALL.slice().sort(function(a,b) { return (b.o||'').localeCompare(a.o||''); });
+    renderTable();
+    idx = filtered.findIndex(function(f) { return String(f.id) === id; });
+  }
+  if (idx !== -1) openDetail(idx);
 }
 
 function showTab(name) {
