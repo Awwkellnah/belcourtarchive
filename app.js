@@ -1,0 +1,1513 @@
+// Theme
+(function() {
+  if (localStorage.getItem('archive-theme') === 'light') {
+    document.documentElement.classList.add('light');
+  }
+})();
+
+function toggleTheme() {
+  const isLight = document.documentElement.classList.toggle('light');
+  document.getElementById('theme-btn').textContent = isLight ? '☽ Dark' : '☀ Light';
+  localStorage.setItem('archive-theme', isLight ? 'light' : 'dark');
+}
+
+// Set button label on load
+document.addEventListener('DOMContentLoaded', function() {
+  const isLight = document.documentElement.classList.contains('light');
+  document.getElementById('theme-btn').textContent = isLight ? '☽ Dark' : '☀ Light';
+  if (viewMode === 'grid') {
+    document.getElementById('view-table-btn').classList.remove('active');
+    document.getElementById('view-grid-btn').classList.add('active');
+  }
+});
+
+let ALL = [];
+let IMDB_TITLES    = {};
+let IMDB_POSTERS   = {};
+let IMDB_DIRECTORS = {};
+let IMDB_RATINGS   = {};
+let RT_RATINGS     = {};
+let IMDB_RUNTIME   = {};
+let IMDB_PLOT      = {};
+let IMDB_URLS      = {};
+let IMDB_YEAR      = {};
+let IMDB_GENRE     = {};
+let IMDB_COUNTRY   = {};
+let IMDB_LANGUAGE  = {};
+let IMDB_RATED     = {};
+let IMDB_ACTORS    = {};
+
+let filtered = [], page = 1, sortKey = 'o', sortDir = -1, currentDetailIdx = -1;
+let otdActive = false;
+let viewMode = localStorage.getItem('belcourt-view') || 'table';
+const PER = 50;
+let gridPER = PER;
+let statsRendered = false;
+
+function processData(data) {
+  const FILM_CATS = new Set(['Film', 'Silent Film']);
+  if (data && data.films && Array.isArray(data.films)) {
+    let raw = data.films;
+    if (data.customFilms && data.customFilms.length) raw = raw.concat(data.customFilms);
+    const deletedIds = new Set((data.deletedIds || []).map(String));
+    ALL = raw.filter(function(f) {
+      return FILM_CATS.has(f.cat) && f.co !== 'Other' && !deletedIds.has(String(f.id));
+    });
+    IMDB_TITLES = {}; IMDB_POSTERS = {}; IMDB_DIRECTORS = {};
+    IMDB_RATINGS = {}; RT_RATINGS = {}; IMDB_RUNTIME = {}; IMDB_PLOT = {};
+    IMDB_URLS = {}; IMDB_YEAR = {}; IMDB_GENRE = {}; IMDB_COUNTRY = {}; IMDB_LANGUAGE = {}; IMDB_RATED = {};
+    const mergedResults = Object.assign({}, data.preloadedResults || {}, data.results || {});
+    Object.entries(mergedResults).forEach(function(entry) {
+      const id = entry[0], r = entry[1];
+      if (!r || !r.imdbData) return;
+      const d = r.imdbData;
+      const nna = function(v) { return v && v !== 'N/A' ? v : null; };
+      if (nna(d.title))      IMDB_TITLES[id]    = d.title;
+      if (nna(d.poster))     IMDB_POSTERS[id]   = d.poster;
+      if (nna(d.director))   IMDB_DIRECTORS[id] = d.director;
+      if (nna(d.imdbRating)) IMDB_RATINGS[id]   = d.imdbRating;
+      if (nna(d.rottenTomatoes)) RT_RATINGS[id] = d.rottenTomatoes;
+      if (nna(d.runtime))    IMDB_RUNTIME[id]   = d.runtime;
+      if (nna(d.plot))       IMDB_PLOT[id]      = d.plot;
+      if (nna(d.imdbUrl))    IMDB_URLS[id]      = d.imdbUrl;
+      if (nna(d.year))       IMDB_YEAR[id]      = d.year;
+      if (nna(d.genre))      IMDB_GENRE[id]     = d.genre;
+      if (nna(d.country))    IMDB_COUNTRY[id]   = d.country;
+      if (nna(d.language))   IMDB_LANGUAGE[id]  = d.language;
+      if (nna(d.rated))      IMDB_RATED[id]     = d.rated;
+      if (nna(d.imdbID))     IMDB_URLS[id] = IMDB_URLS[id] || ('https://www.imdb.com/title/'+d.imdbID+'/');
+    });
+  } else if (Array.isArray(data)) {
+    ALL = data.filter(function(f) { return FILM_CATS.has(f.cat) && f.co !== 'Other'; });
+  } else {
+    throw new Error('Unrecognised file format.');
+  }
+
+  if (!ALL.length) throw new Error('No films found in the file.');
+
+  // Merge any locally-saved enrichment from localStorage
+  try {
+    const stored = localStorage.getItem('belcourt_enrichment_v1');
+    if (stored) {
+      const local = JSON.parse(stored);
+      Object.entries(local).forEach(function(entry) {
+        const id = entry[0], r = entry[1];
+        if (r && r.imdbData) {
+          if (r.imdbData.title) IMDB_TITLES[id] = r.imdbData.title;
+          const poster = r.imdbData.Poster || r.imdbData.poster;
+          if (poster && poster !== 'N/A') IMDB_POSTERS[id] = poster;
+          const dir = r.imdbData.Director || r.imdbData.director;
+          if (dir && dir !== 'N/A') IMDB_DIRECTORS[id] = dir;
+        }
+      });
+    }
+  } catch(ex) {}
+
+  init();
+}
+
+function loadDatabase(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const err = document.getElementById('load-error');
+  err.style.display = 'none';
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      processData(JSON.parse(e.target.result));
+    } catch(ex) {
+      err.textContent = 'Could not load file: ' + ex.message;
+      err.style.display = 'block';
+    }
+  };
+  reader.readAsText(file);
+}
+
+// Auto-load belcourtfilms.json (and belcourtactors.json if present) from the same directory
+document.addEventListener('DOMContentLoaded', function() {
+  Promise.all([
+    fetch('./belcourtfilms.json').then(function(res) { if (!res.ok) throw new Error('Not found'); return res.json(); }),
+    fetch('./belcourtactors.json').then(function(res) { return res.ok ? res.json() : {}; }).catch(function() { return {}; })
+  ])
+    .then(function(results) {
+      IMDB_ACTORS = results[1];
+      processData(results[0]);
+    })
+    .catch(function() {
+      document.getElementById('tbody').innerHTML = '<tr><td colspan="4" style="text-align:center;padding:2.5rem;color:var(--ink-faint);font-size:13px;">Could not load data. Please refresh the page.</td></tr>';
+    });
+});
+
+function displayTitle(f) {
+  return IMDB_TITLES[String(f.id)] || f.t || '\u2014';
+}
+
+function init() {
+  // Reset year, decade, and genre dropdowns
+  ['fYear','fDecade','fGenre'].forEach(function(id) {
+    const el = document.getElementById(id);
+    while (el.options.length > 1) el.remove(1);
+  });
+  const years = [...new Set(ALL.map(function(f){return f.y;}).filter(Boolean))].sort(function(a,b){return b-a;});
+  const fy = document.getElementById('fYear');
+  years.forEach(function(y) { const o=document.createElement('option'); o.value=y; o.textContent=y; fy.appendChild(o); });
+
+  const decades = [...new Set(ALL.map(function(f){return f.y?Math.floor(f.y/10)*10:null;}).filter(Boolean))].sort(function(a,b){return b-a;});
+  const fd = document.getElementById('fDecade');
+  decades.forEach(function(d) { const o=document.createElement('option'); o.value=d; o.textContent=d+'s'; fd.appendChild(o); });
+
+  const genreCounts = {};
+  ALL.forEach(function(f) { parseGenres(f).forEach(function(g) { genreCounts[g] = (genreCounts[g] || 0) + 1; }); });
+  const allGenres = Object.keys(genreCounts).filter(function(g) { return genreCounts[g] > 10; }).sort();
+  const fg = document.getElementById('fGenre');
+  allGenres.forEach(function(g) { const o=document.createElement('option'); o.value=g; o.textContent=g; fg.appendChild(o); });
+
+  // Header stats
+  const withRun = ALL.filter(function(f){return f.r&&f.r<400;});
+  const avg = Math.round(withRun.reduce(function(s,f){return s+f.r;},0)/withRun.length);
+  const longest = [...withRun].sort(function(a,b){return b.r-a.r;})[0];
+
+  // Reset charts if stats were previously rendered
+  statsRendered = false;
+
+  const urlId = new URLSearchParams(location.search).get('id');
+  applyURLParams();
+  onFilter();
+  initOnThisDay();
+  openFromURLId(urlId);
+}
+
+
+
+
+
+function fmt(d) {
+  if(!d) return '—';
+  const p=d.split('-');
+  return ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][parseInt(p[1])-1]+' '+parseInt(p[2])+', '+p[0];
+}
+
+function updateClearBtn() {
+  const btn = document.getElementById('clear-btn');
+  if (!btn) return;
+  const active = otdActive ||
+    document.getElementById('search').value !== '' ||
+    document.getElementById('fYear').value !== '' ||
+    document.getElementById('fDecade').value !== '' ||
+    document.getElementById('fGenre').value !== '';
+  btn.style.display = active ? '' : 'none';
+}
+
+function clearFilters() {
+  document.getElementById('search').value = '';
+  document.getElementById('fYear').value = '';
+  document.getElementById('fDecade').value = '';
+  document.getElementById('fGenre').value = '';
+  otdActive = false;
+  onFilter();
+}
+
+function onFilter() {
+  otdActive = false;
+  const q    = document.getElementById('search').value.toLowerCase();
+  const yr   = document.getElementById('fYear').value;
+  const dc   = document.getElementById('fDecade').value;
+  const gn   = document.getElementById('fGenre').value;
+  const sort = document.getElementById('fSort').value;
+
+  filtered = ALL.filter(f => {
+    const dirStr    = IMDB_DIRECTORS[String(f.id)] || f.director || f.d || '';
+    const actorStr  = IMDB_ACTORS[String(f.id)] || '';
+    if(q && ![(f.t||''),(f.s||''),(f.n||''),(f.co||''),dirStr,actorStr].some(v=>v.toLowerCase().includes(q))) return false;
+    if(yr && f.y != yr) return false;
+    if(dc && Math.floor(f.y/10)*10 != dc) return false;
+    if(gn && !parseGenres(f).includes(gn)) return false;
+    return true;
+  });
+
+  if(sort==='date-desc') filtered.sort((a,b)=>(b.o||'').localeCompare(a.o||''));
+  else if(sort==='date-asc') filtered.sort((a,b)=>(a.o||'').localeCompare(b.o||''));
+  else if(sort==='run-desc') filtered.sort((a,b)=>(b.r||0)-(a.r||0));
+  else if(sort==='alpha') filtered.sort((a,b)=>(a.t||'').localeCompare(b.t||''));
+
+  page = 1;
+  renderTable();
+  updateClearBtn();
+  updateURL();
+}
+
+function sortBy(key) {
+  if(sortKey===key) sortDir*=-1; else { sortKey=key; sortDir=-1; }
+  filtered.sort((a,b)=>{
+    const av=a[key], bv=b[key];
+    if(av==null&&bv==null) return 0;
+    if(av==null) return 1; if(bv==null) return -1;
+    if(typeof av==='number'&&typeof bv==='number') return (av-bv)*sortDir;
+    return av.toString().localeCompare(bv.toString())*sortDir;
+  });
+  renderTable();
+}
+
+function renderTable() {
+  if (viewMode === 'grid') { renderGrid(); return; }
+  document.getElementById('grid-wrap').style.display = 'none';
+  document.getElementById('table-wrap').style.display = '';
+  const start = (page-1)*PER;
+  const slice = filtered.slice(start, start+PER);
+  document.getElementById('tbody').innerHTML = slice.map((f,i) => `
+    <tr onclick="openDetail(${start+i})">
+      <td class="td-title">${displayTitle(f)}${f['35mm'] === true ? '<span class="tag tag-35mm" style="font-size:9px;margin-left:6px;">35mm</span>' : ''}</td>
+      <td class="td-meta">${fmt(f.o)}</td>
+      <td class="td-run">${f.r?f.r+' days':'—'}</td>
+      <td class="td-meta" style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${f.s||''}</td>
+    </tr>`).join('');
+  document.getElementById('results-info').innerHTML =
+    `Showing <strong>${start+1}–${Math.min(start+PER,filtered.length)}</strong> of <strong>${filtered.length.toLocaleString()}</strong> films`;
+  renderPagination();
+}
+
+function renderGrid() {
+  document.getElementById('table-wrap').style.display = 'none';
+  const gridWrap = document.getElementById('grid-wrap');
+  gridWrap.style.display = '';
+  const cols = Math.max(2, Math.floor((gridWrap.clientWidth + 10) / (120 + 10)));
+  gridPER = Math.floor(PER / cols) * cols;
+  const start = (page - 1) * gridPER;
+  const slice = filtered.slice(start, start + gridPER);
+  gridWrap.innerHTML = slice.map(function(f, i) {
+    const id = String(f.id);
+    const posterUrl = IMDB_POSTERS[id];
+    const title = displayTitle(f);
+    const year = f.y || '';
+    const safeTitle = title.replace(/"/g, '&quot;');
+    const thumb = posterUrl
+      ? '<img class="poster-card-img" src="https://images.weserv.nl/?url=' + encodeURIComponent(posterUrl) + '&w=140&h=210&fit=cover&output=webp" alt="' + safeTitle + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' +
+        '<div class="poster-card-ph" style="display:none">' + title + '</div>'
+      : '<div class="poster-card-ph">' + title + '</div>';
+    return '<div class="poster-card" onclick="openDetail(' + (start + i) + ')" title="' + safeTitle + ' (' + year + ')">' +
+      thumb +
+      '<div class="poster-card-overlay">' +
+        '<div class="poster-card-title">' + title + '</div>' +
+        '<div class="poster-card-year">' + year + '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  document.getElementById('results-info').innerHTML =
+    'Showing <strong>' + (start + 1) + '–' + Math.min(start + gridPER, filtered.length) + '</strong> of <strong>' + filtered.length.toLocaleString() + '</strong> films';
+  renderPagination();
+}
+
+function setView(mode) {
+  viewMode = mode;
+  localStorage.setItem('belcourt-view', mode);
+  document.getElementById('view-table-btn').classList.toggle('active', mode === 'table');
+  document.getElementById('view-grid-btn').classList.toggle('active', mode === 'grid');
+  renderTable();
+}
+
+function renderPagination() {
+  const total = Math.ceil(filtered.length / (viewMode === 'grid' ? gridPER : PER));
+  document.getElementById('page-info').textContent = `Page ${page} of ${total}`;
+  let pages=[1];
+  if(page>3) pages.push('...');
+  for(let i=Math.max(2,page-1);i<=Math.min(total-1,page+1);i++) pages.push(i);
+  if(page<total-2) pages.push('...');
+  if(total>1) pages.push(total);
+  document.getElementById('page-btns').innerHTML =
+    `<button class="page-btn" ${page===1?'disabled':''} onclick="goPage(${page-1})">‹</button>` +
+    pages.map(p=>p==='...'
+      ? `<span style="padding:0 6px;line-height:32px;color:var(--ink-faint)">…</span>`
+      : `<button class="page-btn ${p===page?'active':''}" onclick="goPage(${p})">${p}</button>`).join('') +
+    `<button class="page-btn" ${page===Math.ceil(filtered.length/PER)?'disabled':''} onclick="goPage(${page+1})">›</button>`;
+}
+
+function goPage(p) { page=p; renderTable(); window.scrollTo(0,0); }
+
+function navigateDetail(dir) {
+  const next = currentDetailIdx + dir;
+  if (next >= 0 && next < filtered.length) openDetail(next);
+}
+
+function openDetail(idx) {
+  currentDetailIdx = idx;
+  document.getElementById('d-prev').disabled = idx <= 0;
+  document.getElementById('d-next').disabled = idx >= filtered.length - 1;
+  const f  = filtered[idx];
+  const id = String(f.id);
+
+  // Header
+  document.getElementById('d-title').textContent = displayTitle(f);
+  const subParts = [];
+  if (IMDB_YEAR[id])      subParts.push(IMDB_YEAR[id] + ' release');
+  if (IMDB_DIRECTORS[id]) subParts.push('Dir. ' + IMDB_DIRECTORS[id]);
+  if (IMDB_RUNTIME[id])   subParts.push(IMDB_RUNTIME[id]);
+  if (IMDB_COUNTRY[id])  subParts.push(IMDB_COUNTRY[id]);
+  document.getElementById('d-sub').textContent = subParts.join(' · ') || [f.y, f.cat].filter(Boolean).join(' · ');
+
+  // Tags (35mm, Repertory, Silent Film)
+  const tagsEl = document.getElementById('d-tags');
+  const tagStyle = 'display:inline-block;font-size:10px;letter-spacing:0.06em;text-transform:uppercase;padding:3px 8px;border-radius:3px;font-weight:500;border:1px solid;';
+  const tags = [];
+  if (f['35mm'] === true)       tags.push(`<span class="tag tag-35mm">35mm</span>`);
+  if (f.repertory === true)     tags.push(`<span style="${tagStyle}background:rgba(61,186,122,0.15);color:#3dba7a;border-color:rgba(61,186,122,0.3);">Repertory</span>`);
+  if (f.cat === 'Silent Film')  tags.push(`<span style="${tagStyle}background:rgba(200,168,120,0.15);color:#c8a878;border-color:rgba(200,168,120,0.3);">Silent Film</span>`);
+  if (tags.length) {
+    tagsEl.style.display = 'flex';
+    tagsEl.innerHTML = tags.join('');
+  } else {
+    tagsEl.style.display = 'none';
+  }
+
+  // Body fields
+  const genre   = IMDB_GENRE[id]   || f.genre   || '—';
+  const country = IMDB_COUNTRY[id] || f.country  || '—';
+  const fields = [
+    ['Opening date', fmt(f.o)],
+    ['Closing date', fmt(f.c)],
+    ['Run length',   f.r ? f.r + ' days' : '—'],
+    ['Venue',        f.co || '—'],
+    ['Genre',        genre],
+    ['Country',      country],
+    ['Actors',       IMDB_ACTORS[id] || null],
+    ['Series',       f.s  || null],
+    ['Plot',         IMDB_PLOT[id] || null],
+    ['Notes',        f.n  || null],
+  ].filter(function(row) { return row[1] !== null; });
+
+  document.getElementById('d-body').innerHTML = fields.map(function(row) {
+    const l = row[0], v = row[1];
+    const full = (l === 'Plot' || l === 'Notes' || l === 'Series' || l === 'Actors') ? 'full' : '';
+    return `<div class="detail-field ${full}"><label>${l}</label><span>${v}</span></div>`;
+  }).join('');
+
+  // Poster + Ad tabs
+  const posterEl   = document.getElementById('d-poster');
+  const posterImg  = document.getElementById('d-poster-img');
+  const adImg      = document.getElementById('d-ad-img');
+  const imgTabs    = document.getElementById('d-img-tabs');
+  const tabPoster  = document.getElementById('d-tab-poster');
+  const tabAd      = document.getElementById('d-tab-ad');
+  const posterUrl  = IMDB_POSTERS[id];
+  const adUrl      = 'ads/' + id + '.jpg';
+
+  // probe ad existence via a HEAD-equivalent: set src and let onerror hide; we need to know
+  // synchronously so we control tab visibility, so use a pre-flight Image object
+  const adProbe = new Image();
+  adProbe.onload = function() {
+    adImg.src = adUrl;
+    adImg.alt = displayTitle(f) + ' ad';
+    adImg.style.display = 'block';
+    if (posterUrl) {
+      imgTabs.style.display = 'flex';
+      tabAd.classList.add('active');
+      tabPoster.classList.remove('active');
+      posterImg.style.display = 'none';
+    } else {
+      imgTabs.style.display = 'none';
+    }
+    posterEl.style.display = 'flex';
+  };
+  adProbe.onerror = function() {
+    adImg.src = '';
+    adImg.style.display = 'none';
+    imgTabs.style.display = 'none';
+    if (posterUrl) {
+      posterImg.style.display = 'block';
+      posterEl.style.display = 'flex';
+    } else {
+      posterImg.style.display = 'none';
+      posterEl.style.display = 'none';
+    }
+  };
+
+  if (posterUrl) {
+    const proxied = 'https://images.weserv.nl/?url=' + encodeURIComponent(posterUrl) + '&w=200&h=300&fit=cover&output=webp';
+    posterImg.src = proxied;
+    posterImg.alt = displayTitle(f);
+    posterImg.onerror = function() { this.style.display = 'none'; if (!adImg.src) posterEl.style.display = 'none'; };
+  } else {
+    posterImg.src = '';
+    posterImg.style.display = 'none';
+  }
+
+  adProbe.src = adUrl;
+
+  // IMDb link
+  const imdbLink = document.getElementById('d-imdb-link');
+  if (IMDB_URLS[id]) {
+    imdbLink.href = IMDB_URLS[id];
+    imdbLink.style.display = 'inline-block';
+  } else {
+    imdbLink.style.display = 'none';
+  }
+
+  // Letterboxd link — derived from IMDb ID via letterboxd.com/imdb/ttXXXXXXX/
+  const lbLink = document.getElementById('d-letterboxd-link');
+  const imdbIdMatch = IMDB_URLS[id] && IMDB_URLS[id].match(/\/title\/(tt\d+)/);
+  if (imdbIdMatch) {
+    lbLink.href = 'https://letterboxd.com/imdb/' + imdbIdMatch[1] + '/';
+    lbLink.style.display = 'inline-block';
+  } else {
+    lbLink.style.display = 'none';
+  }
+
+  document.getElementById('overlay').classList.add('open');
+  updateURL();
+}
+
+function closeDetail() {
+  document.getElementById('overlay').classList.remove('open');
+  updateURL();
+}
+
+document.addEventListener('keydown', function(e) {
+  if (!document.getElementById('overlay').classList.contains('open')) return;
+  if (e.key === 'Escape')     { closeDetail(); }
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); navigateDetail(-1); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); navigateDetail(1); }
+});
+
+function switchImgTab(tab) {
+  const posterImg = document.getElementById('d-poster-img');
+  const adImg     = document.getElementById('d-ad-img');
+  const tabPoster = document.getElementById('d-tab-poster');
+  const tabAd     = document.getElementById('d-tab-ad');
+  if (tab === 'poster') {
+    posterImg.style.display = 'block';
+    adImg.style.display = 'none';
+    tabPoster.classList.add('active');
+    tabAd.classList.remove('active');
+  } else {
+    posterImg.style.display = 'none';
+    adImg.style.display = 'block';
+    tabPoster.classList.remove('active');
+    tabAd.classList.add('active');
+  }
+}
+
+// Vertical crosshair plugin — applies to all line charts
+Chart.register({
+  id: 'verticalCrosshair',
+  afterDraw(chart) {
+    if (chart.config.type !== 'line') return;
+    if (!chart.tooltip._active || !chart.tooltip._active.length) return;
+    const ctx = chart.ctx;
+    const x = chart.tooltip._active[0].element.x;
+    const topY = chart.scales.y.top;
+    const bottomY = chart.scales.y.bottom;
+    const light = document.documentElement.classList.contains('light');
+    ctx.save();
+    ctx.beginPath();
+    ctx.moveTo(x, topY);
+    ctx.lineTo(x, bottomY);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = light ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.28)';
+    ctx.setLineDash([3, 3]);
+    ctx.stroke();
+    ctx.restore();
+  }
+});
+
+const GENRE_NORM = { 'Action': 'Action/Adventure', 'Adventure': 'Action/Adventure' };
+function parseGenres(f) {
+  if (!f.genre) return [];
+  return [...new Set(f.genre.split(/[,/]/).map(g => GENRE_NORM[g.trim()] || g.trim()).filter(Boolean))];
+}
+
+// Lazy chart observer — renders each chart only when scrolled into view
+const _pendingCharts = new Map();
+const _chartObserver = new IntersectionObserver(function(entries) {
+  entries.forEach(function(entry) {
+    if (!entry.isIntersecting) return;
+    const fn = _pendingCharts.get(entry.target);
+    if (fn) { fn(); _pendingCharts.delete(entry.target); _chartObserver.unobserve(entry.target); }
+  });
+}, { rootMargin: '200px 0px' });
+function observeChart(el, fn) { if (!el) return; _pendingCharts.set(el, fn); _chartObserver.observe(el); }
+
+// STATS
+function renderStats() {
+  if(statsRendered) return;
+  statsRendered = true;
+
+  const withRun = ALL.filter(f=>f.r&&f.r<400);
+  const avg = Math.round(withRun.reduce((s,f)=>s+f.r,0)/withRun.length);
+  const longest = [...withRun].sort((a,b)=>b.r-a.r)[0];
+  const silents = ALL.filter(f=>f.cat==='Silent Film').length;
+  const lostSilents = ALL.filter(f=>
+    f.cat==='Silent Film' && (
+      f.lost === true ||
+      (f.n && /\blost\b/i.test(f.n))
+    )
+  ).length;
+  const withSeries = ALL.filter(f=>f.s&&f.s.trim()).length;
+
+  // Count unique countries
+  const allCountries = new Set();
+  ALL.forEach(f=>{ if(f.country) f.country.split(/[,/]/).forEach(c=>{ const t=c.trim(); if(t) allCountries.add(t); }); });
+
+  // Count unique languages
+  const allLanguages = new Set();
+  ALL.forEach(f=>{ const l=IMDB_LANGUAGE[String(f.id)]; if(l) l.split(',').forEach(x=>{ const t=x.trim(); if(t&&t!=='None') allLanguages.add(t); }); });
+
+  // Average IMDb rating
+  const ratedFilms = ALL.filter(f=>IMDB_RATINGS[String(f.id)]);
+  const avgImdbRating = ratedFilms.length ? (ratedFilms.reduce((s,f)=>s+parseFloat(IMDB_RATINGS[String(f.id)]),0)/ratedFilms.length).toFixed(1) : null;
+
+  // Average runtime
+  const runtimeFilms = ALL.filter(f=>{ const r=parseInt(IMDB_RUNTIME[String(f.id)]); return r>0&&r<400; });
+  const avgRuntimeMins = runtimeFilms.length ? Math.round(runtimeFilms.reduce((s,f)=>s+parseInt(IMDB_RUNTIME[String(f.id)]),0)/runtimeFilms.length) : null;
+
+  // Count unique films: IMDb titles are deduplicated by normalized title;
+  // entries with no IMDb title each count as their own film (keyed by id).
+  const uniqueTitleKeys = new Set();
+  ALL.forEach(f => {
+    const id = String(f.id);
+    const imdbTitle = IMDB_TITLES[id];
+    if (imdbTitle) {
+      const key = 'imdb:' + imdbTitle.replace(/\s*\(35mm\)/i,'').replace(/\s*\(\d{4}\)\s*$/, '').trim().toLowerCase();
+      uniqueTitleKeys.add(key);
+    } else {
+      uniqueTitleKeys.add('id:' + id);
+    }
+  });
+  const uniqueFilmCount = uniqueTitleKeys.size;
+
+  const cardAccents = ['#4a8fe8','#e8a23a','#3dba7a','#c45c8a','#7c5ce8','#3abbb8','#e86c4a','#b87ab0'];
+  const cardData = [
+    ['Total runs',            ALL.length.toLocaleString(),       null,                          cardAccents[0]],
+    ['Unique films',          uniqueFilmCount.toLocaleString(),  null,                          cardAccents[6]],
+    ['Years of history',      101,                         '1925–2026',                   cardAccents[2]],
+    ['Silent films',          silents,                     null,                          cardAccents[1]],
+    ['Lost silent films',     lostSilents,                 'considered lost',             cardAccents[7]],
+    ['Average run',           avg,                         'days',                        cardAccents[3]],
+    ['Longest run',           longest.r,                   longest.t+' ('+longest.y+')', cardAccents[4]],
+   // ['Part of a series',      withSeries.toLocaleString(), null,                          cardAccents[5]],
+    ['Countries represented', allCountries.size,           null,                          cardAccents[6]],
+    ['Languages',             allLanguages.size,           null,                          cardAccents[5]],
+    ...(avgRuntimeMins ? [['Avg runtime',        avgRuntimeMins,              'minutes',                     cardAccents[2]]] : []),
+  ];
+  document.getElementById('stats-grid').innerHTML = cardData.map(([label, val, sub, accent]) => `
+    <div class="stat-card" style="border-top:3px solid ${accent};">
+      <div class="stat-card-label">${label}</div>
+      <div class="stat-card-value" style="color:${accent}">${val}</div>
+      ${sub ? `<div class="stat-card-sub">${sub}</div>` : ''}
+    </div>`).join('');
+
+  const isLight = document.documentElement.classList.contains('light');
+  const tickCol = isLight ? '#6b6560' : '#6b7590';
+  const gridCol = isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)';
+  const yTickCol = isLight ? '#3d3a34' : '#b0b8cc';
+
+  // Chart colour definitions — each chart gets its own palette
+  const C_YEAR    = ['rgba(74,143,232,0.70)',  'rgba(74,143,232,1)'];
+  const C_DECADE  = ['rgba(232,162,58,0.75)',  'rgba(232,162,58,1)'];
+  const C_RUNS    = ['rgba(61,186,122,0.75)',   'rgba(61,186,122,1)'];
+  const C_SERIES  = ['rgba(124,92,232,0.75)',  'rgba(124,92,232,1)'];
+  const C_REPEAT  = ['rgba(232,108,74,0.75)',  'rgba(232,108,74,1)'];
+  const C_GENRE   = ['rgba(58,187,184,0.75)',  'rgba(58,187,184,1)'];
+  const C_COUNTRY = ['rgba(196,92,138,0.75)',  'rgba(196,92,138,1)'];
+  const C_DIR     = ['rgba(232,162,58,0.75)',  'rgba(232,162,58,1)'];
+
+  // Films per year — area/line chart
+  const yc = {};
+  ALL.forEach(f=>{ if(f.y) yc[f.y]=(yc[f.y]||0)+1; });
+  const ys = Object.keys(yc).sort();
+  observeChart(document.getElementById('yearChart'), function() {
+    new Chart(document.getElementById('yearChart'), {
+      type:'line',
+      data:{ labels:ys, datasets:[{
+        data:ys.map(y=>yc[y]),
+        backgroundColor:'rgba(74,143,232,0.13)',
+        borderColor:'rgba(74,143,232,0.9)',
+        borderWidth:2,
+        fill:true,
+        tension:0.35,
+        pointRadius:0,
+        pointHoverRadius:4,
+        pointHoverBackgroundColor:'rgba(74,143,232,1)'
+      }] },
+      options:{ responsive:true, maintainAspectRatio:false, events:['mousemove','mouseout','click','touchstart','touchmove'],
+        interaction:{ mode:'index', intersect:false },
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+' films'}}},
+        scales:{ x:{ticks:{font:{size:10},color:tickCol,autoSkip:true,maxTicksLimit:25,maxRotation:45},grid:{display:false}}, y:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}} } }
+    });
+  });
+
+  // Films per decade — vertical bar chart
+  const dc = {};
+  ALL.forEach(f=>{ if(f.y&&f.y>=1900){ const d=Math.floor(f.y/10)*10; dc[d]=(dc[d]||0)+1; } });
+  const ds = Object.keys(dc).sort();
+  observeChart(document.getElementById('decadeChart'), function() {
+    new Chart(document.getElementById('decadeChart'), {
+      type:'bar',
+      data:{
+        labels:ds.map(d=>d+'s'),
+        datasets:[{ data:ds.map(d=>dc[d]), backgroundColor:C_DECADE[0], borderColor:C_DECADE[1], borderWidth:1 }]
+      },
+      options:{ responsive:true, maintainAspectRatio:false, events:['mousemove','mouseout','click','touchstart','touchmove'],
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toLocaleString()+' films'}}},
+        scales:{ x:{ticks:{font:{size:11},color:tickCol},grid:{display:false}}, y:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}} }
+      }
+    });
+  });
+
+  // Longest runs
+  const RUN_CHART_MAX = 100;
+  let runChartLimit = 15;
+  window.showMoreRuns = function() { runChartLimit = Math.min(runChartLimit + 15, RUN_CHART_MAX); renderRunChart(); };
+  window.renderRunChart = function() {
+    const sel = document.getElementById('runDecadeFilter');
+    const val = sel ? sel.value : 'all';
+    const pool = ALL.filter(f => {
+      if (!f.r || f.r >= 400) return false;
+      if (val === 'all') return true;
+      const dec = parseInt(val);
+      if (dec === 1925) return f.y >= 1925 && f.y < 1950;
+      return f.y >= dec && f.y < dec + 10;
+    });
+    const sorted = [...pool].sort((a,b)=>b.r-a.r);
+    const topRuns = sorted.slice(0, runChartLimit);
+    const wrap = document.getElementById('runWrap');
+    wrap.innerHTML = '';
+    if (!topRuns.length) {
+      wrap.innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No data for this period.</p>';
+      document.getElementById('runMoreWrap').style.display = 'none';
+      return;
+    }
+    wrap.style.height = Math.max(topRuns.length*26+60,160)+'px';
+    const canvas = document.createElement('canvas');
+    wrap.appendChild(canvas);
+    new Chart(canvas, {
+      type:'bar',
+      data:{ labels:topRuns.map(f=>{const t=displayTitle(f);return t.length>34?t.slice(0,34)+'…':t;}), datasets:[{ data:topRuns.map(f=>f.r), backgroundColor:topRuns.map((_,i)=>`rgba(61,186,122,${(1-(i/Math.max(topRuns.length-1,1))*0.72).toFixed(2)})`), borderColor:topRuns.map((_,i)=>`rgba(61,186,122,${(1-(i/Math.max(topRuns.length-1,1))*0.6).toFixed(2)})`), borderWidth:1 }] },
+      options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+        events:['mousemove','mouseout','click','touchstart','touchmove'],
+        onClick:(evt,elements)=>{ if(!elements.length)return; const f=topRuns[elements[0].index]; const idx=filtered.findIndex(x=>x.id===f.id); if(idx!==-1)openDetail(idx); },
+        onHover:(evt,elements)=>{ evt.native.target.style.cursor=elements.length?'pointer':'default'; },
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{
+          const f=topRuns[c.dataIndex];
+          const parts=[c.raw+' days'];
+          if(f.o) parts.push('Opened '+fmt(f.o));
+          if(f.c) parts.push('Closed '+fmt(f.c));
+          return parts;
+        }}}},
+        scales:{ x:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:11},color:yTickCol},grid:{display:false}} } }
+    });
+    document.getElementById('runMoreWrap').style.display = runChartLimit < Math.min(sorted.length, RUN_CHART_MAX) ? '' : 'none';
+  };
+  observeChart(document.getElementById('runWrap'), renderRunChart);
+
+  // Most repeated viewings — group by resolved display title, count entries
+  const rc = {};
+  ALL.forEach(f => {
+    const title = IMDB_TITLES[String(f.id)] || f.t || '';
+    if (!title) return;
+    const key = title.replace(/\s*\(35mm\)/i,'').replace(/\s*\(\d{4}\)\s*$/, '').trim();
+    if (!key) return;
+    if (!rc[key]) rc[key] = { count: 0, label: key };
+    rc[key].count++;
+  });
+  const allTopR = Object.values(rc).filter(e=>e.count>1).sort((a,b)=>b.count-a.count);
+  const REPEAT_CHART_MAX = 100;
+  let repeatChartLimit = 15;
+  window.showMoreRepeats = function() { repeatChartLimit = Math.min(repeatChartLimit + 15, REPEAT_CHART_MAX); renderRepeatChart(); };
+  window.renderRepeatChart = function() {
+    const topR = allTopR.slice(0, repeatChartLimit);
+    const wrap = document.getElementById('repeatWrap');
+    wrap.innerHTML = '';
+    if (!topR.length) {
+      wrap.innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">Not enough repeat data found.</p>';
+      document.getElementById('repeatMoreWrap').style.display = 'none';
+      return;
+    }
+    wrap.style.height = Math.max(topR.length*26+60,160)+'px';
+    const canvas = document.createElement('canvas');
+    wrap.appendChild(canvas);
+    new Chart(canvas, {
+      type:'bar',
+      data:{ labels:topR.map(e=>e.label), datasets:[{ data:topR.map(e=>e.count), backgroundColor:topR.map((_,i)=>`rgba(232,108,74,${(1-(i/Math.max(topR.length-1,1))*0.72).toFixed(2)})`), borderColor:topR.map((_,i)=>`rgba(232,108,74,${(1-(i/Math.max(topR.length-1,1))*0.6).toFixed(2)})`), borderWidth:1 }] },
+      options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, events:['mousemove','mouseout','click','touchstart','touchmove'],
+        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+' total run'+(c.raw===1?'':'s')}}},
+        scales:{ x:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:11},color:yTickCol},grid:{display:false}} } }
+    });
+    document.getElementById('repeatMoreWrap').style.display = repeatChartLimit < Math.min(allTopR.length, REPEAT_CHART_MAX) ? '' : 'none';
+  };
+  observeChart(document.getElementById('repeatWrap'), renderRepeatChart);
+
+  // --- Genre helpers ---
+  const gc = {};
+  ALL.forEach(f=>{ parseGenres(f).forEach(g=>{ gc[g]=(gc[g]||0)+1; }); });
+
+  // Genre trends — small multiples area charts (% of Belcourt programming per year)
+  const top8genres = Object.entries(gc).sort((a,b)=>b[1]-a[1]).slice(0,8).map(e=>e[0]);
+  const allScreeningYears = [...new Set(ALL.map(f=>f.y).filter(y=>y>=1920))].sort((a,b)=>a-b);
+
+  // Precompute totals and per-genre counts per year
+  const smYearTotals = {};
+  const smYearGenre  = {};
+  ALL.forEach(f=>{
+    if(!f.y || f.y < 1920) return;
+    smYearTotals[f.y] = (smYearTotals[f.y]||0) + 1;
+    parseGenres(f).forEach(g=>{
+      if(!smYearGenre[f.y]) smYearGenre[f.y] = {};
+      smYearGenre[f.y][g] = (smYearGenre[f.y][g]||0) + 1;
+    });
+  });
+
+  const GENRE_SM_COLORS = [
+    {r:58, g:187,b:184},{r:74, g:143,b:232},{r:61, g:186,b:122},{r:232,g:162,b:58 },
+    {r:196,g:92, b:138},{r:124,g:92, b:232},{r:232,g:108,b:74 },{r:45, g:140,b:100},
+  ];
+
+  const gdWrap = document.getElementById('genreDecadeWrap');
+  gdWrap.innerHTML = '';
+
+  observeChart(gdWrap, function() { top8genres.forEach((genre, i) => {
+    const {r,g,b} = GENRE_SM_COLORS[i] || {r:128,g:128,b:128};
+    const borderCol = `rgb(${r},${g},${b})`;
+    const fillCol   = `rgba(${r},${g},${b},0.20)`;
+    const labelCol  = `rgba(${r},${g},${b},0.88)`;
+
+    const pctData = allScreeningYears.map(y => {
+      const total = smYearTotals[y] || 0;
+      if(!total) return 0;
+      const count = (smYearGenre[y] && smYearGenre[y][genre]) || 0;
+      return Math.round((count / total) * 1000) / 10;
+    });
+
+    const cell = document.createElement('div');
+    cell.style.cssText = 'display:flex;flex-direction:column;background:var(--bg);border-radius:4px;overflow:hidden;';
+
+    const lbl = document.createElement('div');
+    lbl.textContent = genre.toUpperCase();
+    lbl.style.cssText = `padding:8px 10px 4px;font-family:'Playfair Display',serif;font-size:clamp(11px,1.6vw,15px);font-weight:700;color:${labelCol};letter-spacing:0.1em;flex-shrink:0;`;
+    cell.appendChild(lbl);
+
+    const chartBox = document.createElement('div');
+    chartBox.style.cssText = 'position:relative;height:200px;';
+    const canvas = document.createElement('canvas');
+    chartBox.appendChild(canvas);
+    cell.appendChild(chartBox);
+
+    gdWrap.appendChild(cell);
+
+    new Chart(canvas, {
+      type:'line',
+      data:{
+        labels: allScreeningYears.map(String),
+        datasets:[{
+          data: pctData,
+          backgroundColor: fillCol,
+          borderColor: borderCol,
+          borderWidth: 1.5,
+          fill: true,
+          tension: 0.4,
+          pointRadius: 0,
+          pointHoverRadius: 3,
+          pointHoverBackgroundColor: borderCol,
+        }]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        events:['mousemove','mouseout','touchstart','touchmove'],
+        interaction:{ mode:'index', intersect:false },
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            callbacks:{
+              title: items => items[0].label,
+              label: c => c.raw + '% of that year\'s programming',
+            }
+          }
+        },
+        scales:{
+          x:{
+            ticks:{font:{size:9},color:tickCol,autoSkip:true,maxTicksLimit:8,maxRotation:0},
+            grid:{display:false},
+            border:{display:false}
+          },
+          y:{ display:false, min:0 }
+        }
+      }
+    });
+  }); }); // end top8genres.forEach / observeChart
+
+  // Films by country — HTML flag visualization (top 25)
+  const COUNTRY_NORMALIZE = {
+    'USA':'United States','U.S.A.':'United States','United States of America':'United States','US':'United States',
+    'UK':'United Kingdom','Great Britain':'United Kingdom','England':'United Kingdom','Britain':'United Kingdom',
+    'USSR':'Soviet Union','Russia':'Soviet Union',
+    'West Germany':'Germany','East Germany':'Germany',
+  };
+  const FLAG_MAP = {
+    'USA':'🇺🇸','United States':'🇺🇸','France':'🇫🇷','UK':'🇬🇧','United Kingdom':'🇬🇧',
+    'Great Britain':'🇬🇧','England':'🇬🇧','Italy':'🇮🇹','Germany':'🇩🇪','Japan':'🇯🇵',
+    'Sweden':'🇸🇪','Spain':'🇪🇸','Mexico':'🇲🇽','Brazil':'🇧🇷','Argentina':'🇦🇷',
+    'Iran':'🇮🇷','China':'🇨🇳','Denmark':'🇩🇰','Australia':'🇦🇺','Canada':'🇨🇦',
+    'South Korea':'🇰🇷','Korea':'🇰🇷','Taiwan':'🇹🇼','Hong Kong':'🇭🇰','India':'🇮🇳',
+    'Poland':'🇵🇱','Czech Republic':'🇨🇿','Czechoslovakia':'🇨🇿','Hungary':'🇭🇺',
+    'Romania':'🇷🇴','Soviet Union':'🇷🇺',
+    'Austria':'🇦🇹','Belgium':'🇧🇪','Netherlands':'🇳🇱','Switzerland':'🇨🇭',
+    'Portugal':'🇵🇹','Greece':'🇬🇷','Turkey':'🇹🇷','Israel':'🇮🇱',
+    'Nigeria':'🇳🇬','Senegal':'🇸🇳','Egypt':'🇪🇬','South Africa':'🇿🇦',
+    'New Zealand':'🇳🇿','Chile':'🇨🇱','Colombia':'🇨🇴','Cuba':'🇨🇺',
+    'Norway':'🇳🇴','Finland':'🇫🇮','Iceland':'🇮🇸','Ireland':'🇮🇪',
+    'Philippines':'🇵🇭','Thailand':'🇹🇭','Vietnam':'🇻🇳',
+    'Morocco':'🇲🇦',
+    'Tunisia':'🇹🇳','Algeria':'🇩🇿','Lebanon':'🇱🇧','Palestine':'🇵🇸',
+    'Serbia':'🇷🇸','Croatia':'🇭🇷','Yugoslavia':'🇾🇺','Slovakia':'🇸🇰',
+    'Bulgaria':'🇧🇬','Ukraine':'🇺🇦','Georgia':'🇬🇪','Kazakhstan':'🇰🇿',
+    'Bangladesh':'🇧🇩','Pakistan':'🇵🇰','Sri Lanka':'🇱🇰',
+    'Indonesia':'🇮🇩','Malaysia':'🇲🇾','Singapore':'🇸🇬',
+    'Kenya':'🇰🇪','Ghana':'🇬🇭','Ethiopia':'🇪🇹',
+    'Peru':'🇵🇪','Venezuela':'🇻🇪','Uruguay':'🇺🇾','Bolivia':'🇧🇴',
+  };
+  // Repertory vs. new release by year (2000+)
+  const repByYear = {};
+  ALL.forEach(f => {
+    if (!f.y || f.y < 2000 || f.repertory === null || f.repertory === undefined) return;
+    if (!repByYear[f.y]) repByYear[f.y] = { rep: 0, nr: 0 };
+    if (f.repertory === true) repByYear[f.y].rep++; else repByYear[f.y].nr++;
+  });
+  const repYears = Object.keys(repByYear).map(Number).filter(yr => repByYear[yr].rep + repByYear[yr].nr >= 3).sort((a,b) => a-b);
+  observeChart(document.getElementById('repertoryTrendChart'), function() {
+    new Chart(document.getElementById('repertoryTrendChart'), {
+      type: 'bar',
+      data: {
+        labels: repYears,
+        datasets: [
+          { label: 'Repertory', data: repYears.map(yr => { const d=repByYear[yr]; return parseFloat((d.rep/(d.rep+d.nr)*100).toFixed(1)); }), backgroundColor: 'rgba(124,92,232,0.75)', borderWidth: 0 },
+          { label: 'New release', data: repYears.map(yr => { const d=repByYear[yr]; return parseFloat((d.nr/(d.rep+d.nr)*100).toFixed(1)); }), backgroundColor: 'rgba(74,143,232,0.75)', borderWidth: 0 },
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'top', labels: { font: { size: 11 }, color: yTickCol, boxWidth: 12 } },
+          tooltip: { callbacks: { label: c => c.dataset.label + ': ' + c.raw + '%' } }
+        },
+        scales: {
+          x: { stacked: true, ticks: { font: { size: 10 }, color: tickCol }, grid: { color: gridCol } },
+          y: { stacked: true, min: 0, max: 100, ticks: { font: { size: 10 }, color: tickCol, callback: v => v + '%' }, grid: { color: gridCol } }
+        }
+      }
+    });
+  });
+
+  window.renderCountryChart = function() {
+    const sel = document.getElementById('countryYearFilter');
+    const val = sel ? sel.value : 'all';
+    let films = ALL;
+    if (val !== 'all') {
+      const decade = parseInt(val);
+      const end = decade === 1925 ? 1949 : decade + 9;
+      films = ALL.filter(f => f.y >= decade && f.y <= end);
+    }
+    const cc = {};
+    films.forEach(f=>{
+      if(f.country) f.country.split(/[,/]/).forEach(c=>{
+        const raw = c.trim();
+        if(!raw) return;
+        const t = COUNTRY_NORMALIZE[raw] || raw;
+        cc[t] = (cc[t]||0)+1;
+      });
+    });
+    const topC = Object.entries(cc).sort((a,b)=>b[1]-a[1]).slice(0,20);
+    const maxC = topC[0] ? topC[0][1] : 1;
+    const isLightNow = document.documentElement.classList.contains('light');
+    const cBarFill = 'rgba(196,92,138,0.80)';
+    const cBarTrack = isLightNow ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)';
+    document.getElementById('countryWrap').innerHTML = topC.length ? `
+      <div style="display:flex;flex-direction:column;gap:0;">
+        ${topC.map(([country, count], i) => {
+          const flag = FLAG_MAP[country] || '🌍';
+          const pct  = Math.round((count / maxC) * 100);
+          return `<div style="display:flex;align-items:center;gap:10px;padding:7px 2px;border-bottom:1px solid var(--border);">
+            <div style="width:22px;text-align:right;font-size:10px;color:var(--ink-faint);font-variant-numeric:tabular-nums;">${i+1}</div>
+            <div style="font-size:22px;width:30px;text-align:center;line-height:1;">${flag}</div>
+            <div style="width:120px;font-size:13px;color:var(--ink-light);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;">${country}</div>
+            <div style="flex:1;background:${cBarTrack};border-radius:3px;height:10px;overflow:hidden;">
+              <div style="height:100%;width:${pct}%;background:${cBarFill};border-radius:3px;"></div>
+            </div>
+            <div style="width:44px;text-align:right;font-size:12px;color:var(--ink-light);font-variant-numeric:tabular-nums;font-weight:500;">${count.toLocaleString()}</div>
+          </div>`;
+        }).join('')}
+      </div>` : `<div style="padding:2rem;text-align:center;color:var(--ink-faint);font-size:13px;">No data for this period.</div>`;
+  };
+  observeChart(document.getElementById('countryWrap'), renderCountryChart);
+
+  // MPAA rating breakdown
+  const mpaaOrder=['G','PG','PG-13','R','NC-17','NR'];
+  const mpaaCounts={};
+  ALL.forEach(f=>{ let rated=IMDB_RATED[String(f.id)]; if(!rated) return; if(rated==='Not Rated'||rated==='Unrated') rated='NR'; if(!mpaaOrder.includes(rated)) return; mpaaCounts[rated]=(mpaaCounts[rated]||0)+1; });
+  const mpaaEntries=Object.entries(mpaaCounts).sort((a,b)=>mpaaOrder.indexOf(a[0])-mpaaOrder.indexOf(b[0]));
+  observeChart(document.getElementById('mpaaWrap'), function() {
+    const mpaaWrap=document.getElementById('mpaaWrap');
+    if(mpaaEntries.length){
+      mpaaWrap.style.height=Math.max(mpaaEntries.length*26+60,120)+'px';
+      const mpaaCanvas=document.createElement('canvas'); mpaaWrap.appendChild(mpaaCanvas);
+      const mpaaColors={'G':'rgba(61,186,122,0.75)','PG':'rgba(74,143,232,0.75)','PG-13':'rgba(232,162,58,0.75)','R':'rgba(196,92,138,0.75)','NC-17':'rgba(232,108,74,0.75)','NR':'rgba(124,92,232,0.75)','Passed':'rgba(58,187,184,0.75)','Approved':'rgba(184,122,176,0.75)'};
+      new Chart(mpaaCanvas,{
+        type:'bar',
+        data:{ labels:mpaaEntries.map(e=>e[0]), datasets:[{data:mpaaEntries.map(e=>e[1]), backgroundColor:mpaaEntries.map(e=>mpaaColors[e[0]]||'rgba(150,150,150,0.6)'), borderWidth:0}] },
+        options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toLocaleString()+' film'+(c.raw===1?'':'s')}}},
+          scales:{ x:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:11},color:yTickCol},grid:{display:false}} } }
+      });
+    } else { mpaaWrap.innerHTML='<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No MPAA rating data found.</p>'; }
+  });
+
+  // Top 15 languages
+  const langCount = {};
+  ALL.forEach(f => {
+    const lang = IMDB_LANGUAGE[String(f.id)];
+    if (!lang) return;
+    lang.split(',').forEach(l => {
+      const name = l.trim();
+      if (name && name !== 'None') langCount[name] = (langCount[name] || 0) + 1;
+    });
+  });
+  const topLangs = Object.entries(langCount).sort((a,b)=>b[1]-a[1]).slice(0,15);
+  observeChart(document.getElementById('languageWrap'), function() {
+    const langWrap = document.getElementById('languageWrap');
+    if (topLangs.length) {
+      langWrap.style.height = Math.max(topLangs.length * 26 + 60, 160) + 'px';
+      const langCanvas = document.createElement('canvas');
+      langWrap.appendChild(langCanvas);
+      new Chart(langCanvas, {
+        type: 'bar',
+        data: {
+          labels: topLangs.map(e => e[0]),
+          datasets: [{ data: topLangs.map(e => e[1]), backgroundColor: topLangs.map((_,i) => `rgba(74,143,232,${(1-(i/Math.max(topLangs.length-1,1))*0.72).toFixed(2)})`), borderColor: topLangs.map((_,i) => `rgba(74,143,232,${(1-(i/Math.max(topLangs.length-1,1))*0.6).toFixed(2)})`), borderWidth: 1 }]
+        },
+        options: {
+          indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.raw.toLocaleString() + ' film' + (c.raw === 1 ? '' : 's') } } },
+          scales: { x: { ticks: { font: { size: 10 }, color: tickCol }, grid: { color: gridCol } }, y: { ticks: { font: { size: 11 }, color: yTickCol }, grid: { display: false } } }
+        }
+      });
+    } else {
+      langWrap.innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No language data found in this archive file.</p>';
+    }
+  });
+
+  // Runtime distribution
+  const rtBuckets=[{label:'Under 60 min',min:0,max:60},{label:'60–89 min',min:60,max:90},{label:'90–104 min',min:90,max:105},{label:'105–119 min',min:105,max:120},{label:'120–149 min',min:120,max:150},{label:'150+ min',min:150,max:Infinity}];
+  const rtCounts=rtBuckets.map(()=>0);
+  ALL.forEach(f=>{ const rt=parseInt(IMDB_RUNTIME[String(f.id)]); if(!rt||rt<=0||rt>600) return; const i=rtBuckets.findIndex(b=>rt>=b.min&&rt<b.max); if(i!==-1) rtCounts[i]++; });
+  observeChart(document.getElementById('runtimeDistChart'), function() {
+    new Chart(document.getElementById('runtimeDistChart'),{
+      type:'bar',
+      data:{ labels:rtBuckets.map(b=>b.label), datasets:[{data:rtCounts, backgroundColor:'rgba(61,186,122,0.70)', borderColor:'rgba(61,186,122,1)', borderWidth:1}] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toLocaleString()+' film'+(c.raw===1?'':'s')}}},
+        scales:{ x:{ticks:{font:{size:11},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}} } }
+    });
+  });
+
+  // Age at screening
+  const ageBuckets=[{label:'New (0–1 yr)',min:0,max:2},{label:'2–3 years',min:2,max:4},{label:'4–9 years',min:4,max:10},{label:'10–19 years',min:10,max:20},{label:'20–29 years',min:20,max:30},{label:'30–49 years',min:30,max:50},{label:'50+ years',min:50,max:Infinity}];
+  const ageCounts=ageBuckets.map(()=>0);
+  ALL.forEach(f=>{ if(!f.y) return; const imdbYr=parseInt(IMDB_YEAR[String(f.id)]); if(!imdbYr) return; const gap=f.y-imdbYr; if(gap<0||gap>200) return; const i=ageBuckets.findIndex(b=>gap>=b.min&&gap<b.max); if(i!==-1) ageCounts[i]++; });
+  observeChart(document.getElementById('ageAtScreeningChart'), function() {
+    new Chart(document.getElementById('ageAtScreeningChart'),{
+      type:'bar',
+      data:{ labels:ageBuckets.map(b=>b.label), datasets:[{data:ageCounts, backgroundColor:'rgba(232,108,74,0.70)', borderColor:'rgba(232,108,74,1)', borderWidth:1}] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toLocaleString()+' film'+(c.raw===1?'':'s')}}},
+        scales:{ x:{ticks:{font:{size:11},color:tickCol},grid:{color:gridCol}}, y:{ticks:{font:{size:10},color:tickCol},grid:{color:gridCol}} } }
+    });
+  });
+
+  // Most screened directors — card grid (top 20, unique titles only)
+  const dirFilmMap = {}; // director -> { normTitle -> { title, releaseYear, rating, runs } }
+  ALL.forEach(f=>{
+    const id = String(f.id);
+    const raw = IMDB_DIRECTORS[id] || f.director || f.d || '';
+    if(!raw) return;
+    const title = displayTitle(f) || f.t || '';
+    const normTitle = title.replace(/\s*\(35mm\)/i,'').replace(/\s*\(\d{4}\)\s*$/, '').trim();
+    if(!normTitle) return;
+    const releaseYear = parseInt(IMDB_YEAR[id]) || null;
+    const rating = null;
+    raw.split(/[,/]/).forEach(name=>{
+      const t = name.trim();
+      if(!t || t === 'N/A') return;
+      if(!dirFilmMap[t]) dirFilmMap[t] = {};
+      if(!dirFilmMap[t][normTitle]) dirFilmMap[t][normTitle] = { title:normTitle, releaseYear, rating, runs:0 };
+      dirFilmMap[t][normTitle].runs++;
+    });
+  });
+  // Build sorted arrays (by release year) and derive counts
+  const dc2 = {};
+  const dirFilmsSorted = {};
+  Object.keys(dirFilmMap).forEach(name=>{
+    const arr = Object.values(dirFilmMap[name]).sort((a,b)=>{
+      if(a.releaseYear && b.releaseYear) return a.releaseYear - b.releaseYear;
+      if(a.releaseYear) return -1;
+      if(b.releaseYear) return 1;
+      return a.title.localeCompare(b.title);
+    });
+    dirFilmsSorted[name] = arr;
+    dc2[name] = arr.length;
+  });
+  const topD = Object.entries(dc2).sort((a,b)=>b[1]-a[1]).slice(0,20);
+  window.TOP_DIRECTORS  = topD;
+  window.DIRECTOR_FILMS = dirFilmsSorted;
+  const DIR_CARD_COLORS = [
+    '#4a8fe8','#e8a23a','#3dba7a','#c45c8a','#7c5ce8',
+    '#3abbb8','#e86c4a','#2d7abf','#b87ab0','#7ab87a',
+  ];
+  observeChart(document.getElementById('directorWrap'), function() {
+  if(topD.length) {
+    document.getElementById('directorWrap').style.height = 'auto';
+    document.getElementById('directorWrap').innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;">
+        ${topD.map(([name, count], i) => {
+          const color = DIR_CARD_COLORS[i % DIR_CARD_COLORS.length];
+          const initials = name.split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+          const preview = (dirFilmsSorted[name]||[]).slice(0,3).map(f=>f.title.length>28?f.title.slice(0,28)+'…':f.title);
+          return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px 12px;display:flex;flex-direction:column;gap:8px;transition:border-color 0.15s;cursor:pointer;" onclick="openDirectorModal(${i})" onmouseover="this.style.borderColor='${color}55'" onmouseout="this.style.borderColor='var(--border)'">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div id="dir-avatar-${i}" style="width:60px;height:60px;border-radius:50%;background:${color}1a;border:2px solid ${color}44;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
+                <span style="font-size:16px;font-weight:600;color:${color};font-family:'DM Sans',sans-serif;">${initials}</span>
+              </div>
+              <div style="min-width:0;">
+                <div style="font-size:13px;font-weight:500;color:var(--ink);line-height:1.25;">${name}</div>
+                <div style="font-size:11px;color:${color};margin-top:2px;font-weight:500;">${count} film${count===1?'':'s'}</div>
+              </div>
+            </div>
+            ${preview.length ? `<div style="font-size:11px;color:var(--ink-faint);line-height:1.6;border-top:1px solid var(--border);padding-top:7px;">${preview.join('<br>')}<br><span style="color:${color};font-size:10px;letter-spacing:0.04em;">View all →</span></div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>`;
+    fetchPersonPhotos(topD, DIR_CARD_COLORS, 'dir-avatar-');
+  } else {
+    document.getElementById('directorWrap').innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No director data found in this archive file.</p>';
+  }
+  }); // end observeChart directorWrap
+
+  // Most screened female directors
+  const FEMALE_DIRECTORS = new Set([
+    // Pioneers & classic era
+    'Alice Guy-Blaché','Lois Weber','Dorothy Arzner','Ida Lupino','Maya Deren',
+    'Shirley Clarke','Barbara Loden','Elaine May','Joan Micklin Silver','Claudia Weill',
+    'Donna Deitch','Lizzie Borden','Yvonne Rainer','Su Friedrich',
+    // American — modern & contemporary
+    'Sofia Coppola','Greta Gerwig','Kathryn Bigelow','Kelly Reichardt','Chloé Zhao',
+    'Dee Rees','Ava DuVernay','Nicole Holofcener','Tamara Jenkins','Marielle Heller',
+    'Eliza Hittman','Debra Granik','Miranda July','Karyn Kusama','Mary Harron',
+    'Kasi Lemmons','Julie Taymor','Lisa Cholodenko','Rebecca Miller','Josephine Decker',
+    'Lulu Wang','Desiree Akhavan','Janicza Bravo','Kitty Green','Kimberly Peirce',
+    'Catherine Hardwicke','Nora Ephron','Penny Marshall','Amy Heckerling','Nancy Meyers',
+    'Patty Jenkins','Susan Seidelman','Martha Coolidge','Penelope Spheeris',
+    'Barbara Kopple','Julie Dash','Allison Anders','Rose Troche','Crystal Moselle',
+    'Reed Morano','Kirsten Johnson','Sara Dosa','Alma Har\'el','Mimi Leder',
+    // French & Belgian
+    'Agnès Varda','Claire Denis','Céline Sciamma','Mati Diop','Catherine Breillat',
+    'Diane Kurys','Maïwenn','Justine Triet','Julia Ducournau','Chantal Akerman',
+    'Lucile Hadzihalilovic','Rebecca Zlotowski','Emmanuelle Bercot','Yamina Benguigui',
+    // British & Irish
+    'Lynne Ramsay','Andrea Arnold','Joanna Hogg','Phyllida Lloyd','Sam Taylor-Johnson',
+    'Clio Barnard','Carol Morley','Gurinder Chadha','Amma Asante','Lone Scherfig',
+    'Mona Achache',
+    // German, Austrian & Swiss
+    'Margarethe von Trotta','Doris Dörrie','Monika Treut','Helke Sander',
+    'Helma Sanders-Brahms','Maren Ade','Valeska Grisebach','Angela Schanelec',
+    'Ursula Meier',
+    // Eastern European
+    'Věra Chytilová','Vera Chytilova','Márta Mészáros','Marta Meszaros',
+    'Agnieszka Holland','Małgorzata Szumowska',
+    // Scandinavian
+    'Susanne Bier','Liv Ullmann','May El-Toukhy','Lisa Langseth',
+    // Italian & Spanish
+    'Lina Wertmüller','Isabel Coixet','Icíar Bollaín','Pilar Miró',
+    // Latin American
+    'Lucrecia Martel','Claudia Llosa','María Novaro','Fernanda Valadez','Lucía Puenzo',
+    // Middle Eastern & North African
+    'Nadine Labaki','Haifaa al-Mansour','Maryam Touzani',
+    // African
+    'Wanuri Kahiu',
+    // South Asian
+    'Mira Nair','Deepa Mehta','Aparna Sen','Meghna Gulzar','Zoya Akhtar',
+    // East Asian
+    'Naomi Kawase','Yuki Tanada',
+    // Australian & New Zealand
+    'Jane Campion','Gillian Armstrong',
+    // Canadian
+    'Alanis Obomsawin','Anne Wheeler','Sarah Polley',
+    // Soviet & Russian
+    'Larisa Shepitko','Kira Muratova',
+  ]);
+
+  const topFemale = Object.entries(dc2)
+    .filter(([name]) => FEMALE_DIRECTORS.has(name))
+    .sort((a,b) => b[1]-a[1])
+    .slice(0,20);
+  window.TOP_FEMALE_DIRECTORS = topFemale;
+
+  observeChart(document.getElementById('femaleDirectorWrap'), function() {
+  const femWrap = document.getElementById('femaleDirectorWrap');
+  if (topFemale.length) {
+    femWrap.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;">
+        ${topFemale.map(([name, count], i) => {
+          const color = DIR_CARD_COLORS[i % DIR_CARD_COLORS.length];
+          const initials = name.split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+          const preview = (dirFilmsSorted[name]||[]).slice(0,3).map(f=>f.title.length>28?f.title.slice(0,28)+'…':f.title);
+          return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px 12px;display:flex;flex-direction:column;gap:8px;transition:border-color 0.15s;cursor:pointer;" onclick="openFemaleDirectorModal(${i})" onmouseover="this.style.borderColor='${color}55'" onmouseout="this.style.borderColor='var(--border)'">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div id="fdir-avatar-${i}" style="width:60px;height:60px;border-radius:50%;background:${color}1a;border:2px solid ${color}44;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
+                <span style="font-size:16px;font-weight:600;color:${color};font-family:'DM Sans',sans-serif;">${initials}</span>
+              </div>
+              <div style="min-width:0;">
+                <div style="font-size:13px;font-weight:500;color:var(--ink);line-height:1.25;">${name}</div>
+                <div style="font-size:11px;color:${color};margin-top:2px;font-weight:500;">${count} film${count===1?'':'s'}</div>
+              </div>
+            </div>
+            ${preview.length ? `<div style="font-size:11px;color:var(--ink-faint);line-height:1.6;border-top:1px solid var(--border);padding-top:7px;">${preview.join('<br>')}<br><span style="color:${color};font-size:10px;letter-spacing:0.04em;">View all →</span></div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>`;
+    fetchPersonPhotos(topFemale, DIR_CARD_COLORS, 'fdir-avatar-');
+  } else {
+    femWrap.innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No female directors found in this archive file. Director data may not be loaded.</p>';
+  }
+  }); // end observeChart femaleDirectorWrap
+
+  // Top 20 actors by distinct film appearances
+  const actorFilmMap = {};
+  ALL.forEach(f => {
+    const id = String(f.id);
+    const raw = IMDB_ACTORS[id] || '';
+    if (!raw) return;
+    const title = displayTitle(f) || f.t || '';
+    const normTitle = title.replace(/\s*\(35mm\)/i,'').replace(/\s*\(\d{4}\)\s*$/, '').trim();
+    if (!normTitle) return;
+    const releaseYear = parseInt(IMDB_YEAR[id]) || null;
+    const rating = null;
+    raw.split(',').slice(0, 3).forEach(name => {
+      const t = name.trim();
+      if (!t || t === 'N/A') return;
+      if (!actorFilmMap[t]) actorFilmMap[t] = {};
+      if (!actorFilmMap[t][normTitle]) actorFilmMap[t][normTitle] = { title: normTitle, releaseYear, rating, runs: 0 };
+      actorFilmMap[t][normTitle].runs++;
+    });
+  });
+  const actorFilmsSorted = {};
+  const actorCounts = {};
+  Object.keys(actorFilmMap).forEach(name => {
+    const arr = Object.values(actorFilmMap[name]).sort((a, b) => {
+      if (a.releaseYear && b.releaseYear) return a.releaseYear - b.releaseYear;
+      if (a.releaseYear) return -1;
+      if (b.releaseYear) return 1;
+      return a.title.localeCompare(b.title);
+    });
+    actorFilmsSorted[name] = arr;
+    actorCounts[name] = arr.length;
+  });
+  const topActors = Object.entries(actorCounts).sort((a,b) => b[1]-a[1]).slice(0,20);
+  window.TOP_ACTORS = topActors;
+  window.ACTOR_FILMS = actorFilmsSorted;
+
+  const ACTOR_CARD_COLORS = [
+    '#3abbb8','#c45c8a','#4a8fe8','#e8a23a','#7c5ce8',
+    '#3dba7a','#e86c4a','#b87ab0','#2d7abf','#7ab87a',
+  ];
+  observeChart(document.getElementById('actorWrap'), function() {
+  const actorWrap = document.getElementById('actorWrap');
+  if (topActors.length) {
+    actorWrap.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;">
+        ${topActors.map(([name, count], i) => {
+          const color = ACTOR_CARD_COLORS[i % ACTOR_CARD_COLORS.length];
+          const initials = name.split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+          const preview = (actorFilmsSorted[name]||[]).slice(0,3).map(f=>f.title.length>28?f.title.slice(0,28)+'…':f.title);
+          return `<div style="background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:14px 12px;display:flex;flex-direction:column;gap:8px;transition:border-color 0.15s;cursor:pointer;" onclick="openActorModal(${i})" onmouseover="this.style.borderColor='${color}55'" onmouseout="this.style.borderColor='var(--border)'">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div id="actor-avatar-${i}" style="width:60px;height:60px;border-radius:50%;background:${color}1a;border:2px solid ${color}44;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;">
+                <span style="font-size:16px;font-weight:600;color:${color};font-family:'DM Sans',sans-serif;">${initials}</span>
+              </div>
+              <div style="min-width:0;">
+                <div style="font-size:13px;font-weight:500;color:var(--ink);line-height:1.25;">${name}</div>
+                <div style="font-size:11px;color:${color};margin-top:2px;font-weight:500;">${count} film${count===1?'':'s'}</div>
+              </div>
+            </div>
+            ${preview.length ? `<div style="font-size:11px;color:var(--ink-faint);line-height:1.6;border-top:1px solid var(--border);padding-top:7px;">${preview.join('<br>')}<br><span style="color:${color};font-size:10px;letter-spacing:0.04em;">View all →</span></div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>`;
+    fetchPersonPhotos(topActors, ACTOR_CARD_COLORS, 'actor-avatar-');
+  } else {
+    actorWrap.innerHTML = '<p style="font-size:12px;color:var(--ink-faint);padding:1rem 0;">No actor data found. Make sure belcourtactors.json is present.</p>';
+  }
+  }); // end observeChart actorWrap
+}
+
+const DIR_MODAL_COLORS = ['#4a8fe8','#e8a23a','#3dba7a','#c45c8a','#7c5ce8','#3abbb8','#e86c4a','#2d7abf','#b87ab0','#7ab87a'];
+
+function _showDirectorModal(name, count, colorIndex, filmMap, photoUrl) {
+  const films = (filmMap || window.DIRECTOR_FILMS)[name] || [];
+  const color = DIR_MODAL_COLORS[colorIndex % 10];
+  const initials = name.split(/\s+/).map(w=>w[0]||'').join('').slice(0,2).toUpperCase();
+
+  const av = document.getElementById('dm-avatar');
+  av.style.borderColor = color + '55';
+  if (photoUrl) {
+    av.style.width = '64px';
+    av.style.height = '64px';
+    av.style.background = 'transparent';
+    av.innerHTML = '<img src="' + photoUrl + '" alt="" style="width:100%;height:100%;object-fit:cover;object-position:top;">';
+  } else {
+    av.style.width = '48px';
+    av.style.height = '48px';
+    av.style.background = color + '1a';
+    av.innerHTML = '<span id="dm-initials" style="font-size:16px;font-weight:600;font-family:\'DM Sans\',sans-serif;color:' + color + ';">' + initials + '</span>';
+  }
+  document.getElementById('dm-name').textContent = name;
+  document.getElementById('dm-sub').textContent = count + ' distinct film' + (count === 1 ? '' : 's') + ' screened at the Belcourt';
+
+  const isLight = document.documentElement.classList.contains('light');
+  const borderCol = isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)';
+  const faintCol  = isLight ? '#6b6560' : '#6b7590';
+  const lightCol  = isLight ? '#3d3a34' : '#b0b8cc';
+
+  document.getElementById('dm-body').innerHTML = films.length ? `
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr>
+          <th style="text-align:left;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:${faintCol};padding:7px 8px 7px 0;border-bottom:1px solid ${borderCol};font-weight:500;white-space:nowrap;">Year</th>
+          <th style="text-align:left;font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:${faintCol};padding:7px 8px;border-bottom:1px solid ${borderCol};font-weight:500;">Film</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${films.map(f => `
+          <tr style="border-bottom:1px solid ${borderCol};">
+            <td style="padding:9px 8px 9px 0;color:${faintCol};font-variant-numeric:tabular-nums;white-space:nowrap;vertical-align:middle;font-size:12px;">${f.releaseYear || '—'}</td>
+            <td style="padding:9px 8px;color:${lightCol};vertical-align:middle;line-height:1.3;">
+              ${f.title}
+              ${f.runs > 1 ? `<span style="display:inline-block;margin-left:6px;font-size:10px;padding:1px 6px;border-radius:10px;background:${color}18;color:${color};font-weight:500;">×${f.runs} runs</span>` : ''}
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>` : '<p style="font-size:13px;color:var(--ink-faint);padding:1rem 0;">No film data available.</p>';
+
+  document.getElementById('director-overlay').classList.add('open');
+}
+
+function _photoFromCache(name) {
+  try {
+    const cache = JSON.parse(localStorage.getItem(PERSON_PHOTO_CACHE_KEY) || '{}');
+    return cache[name] || null;
+  } catch(e) { return null; }
+}
+
+function openDirectorModal(i) {
+  const [name, count] = window.TOP_DIRECTORS[i];
+  _showDirectorModal(name, count, i, null, _photoFromCache(name));
+}
+
+function openFemaleDirectorModal(i) {
+  const [name, count] = window.TOP_FEMALE_DIRECTORS[i];
+  _showDirectorModal(name, count, i, null, _photoFromCache(name));
+}
+
+function closeDirectorModal() {
+  document.getElementById('director-overlay').classList.remove('open');
+}
+
+function openActorModal(i) {
+  const [name, count] = window.TOP_ACTORS[i];
+  _showDirectorModal(name, count, i, window.ACTOR_FILMS, _photoFromCache(name));
+}
+
+const PERSON_PHOTO_CACHE_KEY = 'belcourt_person_photos_v1';
+
+function fetchPersonPhotos(people, colors, idPrefix) {
+  let cache = {};
+  try { cache = JSON.parse(localStorage.getItem(PERSON_PHOTO_CACHE_KEY) || '{}'); } catch(e) {}
+
+  people.forEach(([name], i) => {
+    const color = colors[i % colors.length];
+    const el = document.getElementById(idPrefix + i);
+    if (!el) return;
+
+    if (name in cache) {
+      if (cache[name]) applyPersonPhoto(el, cache[name], color);
+      return;
+    }
+
+    const wikiSlug = name.trim().replace(/ /g, '_');
+    fetch('https://en.wikipedia.org/api/rest_v1/page/summary/' + encodeURIComponent(wikiSlug))
+      .then(function(res) { return res.ok ? res.json() : null; })
+      .then(function(data) {
+        const url = (data && data.thumbnail && data.thumbnail.source) ? data.thumbnail.source : null;
+        cache[name] = url;
+        try { localStorage.setItem(PERSON_PHOTO_CACHE_KEY, JSON.stringify(cache)); } catch(e) {}
+        const elNow = document.getElementById(idPrefix + i);
+        if (url && elNow) applyPersonPhoto(elNow, url, color);
+      })
+      .catch(function() {});
+  });
+}
+
+function applyPersonPhoto(el, url, color) {
+  el.innerHTML = '<img src="' + url + '" alt="" style="width:100%;height:100%;object-fit:cover;object-position:top;" onerror="this.parentElement.dataset.err=\'1\'">';
+  el.style.background = 'transparent';
+  el.style.border = '2px solid ' + color + '44';
+}
+
+function initOnThisDay() {
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const todayMD = mm + '-' + dd;
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const dateLabel = monthNames[now.getMonth()] + ' ' + now.getDate();
+
+  const otdFilms = ALL.filter(function(f) {
+    if (!f.o || !f.c) return false;
+    const oMD = f.o.slice(5);
+    const cMD = f.c.slice(5);
+    if (oMD <= cMD) return oMD <= todayMD && todayMD <= cMD;
+    return todayMD >= oMD || todayMD <= cMD; // cross-year run
+  }).sort(function(a, b) { return (a.o || '').localeCompare(b.o || ''); });
+
+  if (!otdFilms.length) return;
+
+  window.OTD_FILMS = otdFilms;
+  window.OTD_DATE_LABEL = dateLabel;
+
+  const withPoster = otdFilms.filter(function(f) { return !!IMDB_POSTERS[String(f.id)]; });
+  const withoutPoster = otdFilms.filter(function(f) { return !IMDB_POSTERS[String(f.id)]; });
+  const displayFilms = withPoster.concat(withoutPoster).slice(0, 12);
+  window.OTD_DISPLAY_FILMS = displayFilms;
+
+  const moreCount = otdFilms.length - displayFilms.length;
+
+  const section = document.getElementById('otd-section');
+  section.style.display = '';
+  section.innerHTML =
+    '<div class="otd-section">' +
+      '<div class="otd-header">' +
+        '<span class="otd-heading">On this day</span>' +
+        '<span class="otd-datename"> ' + dateLabel + '</span>' +
+        '<button class="otd-browse-all" onclick="browseAllOTD()">Browse all ' + otdFilms.length + ' →</button>' +
+        '<button class="otd-toggle-btn" id="otd-toggle" onclick="toggleOTD()">Collapse</button>' +
+      '</div>' +
+      '<div class="otd-scroll" id="otd-scroll">' +
+        displayFilms.map(function(f, i) {
+          const id = String(f.id);
+          const posterUrl = IMDB_POSTERS[id];
+          const title = displayTitle(f);
+          const year = f.o ? f.o.slice(0, 4) : (f.y || '?');
+          const safeTitle = title.replace(/"/g, '&quot;');
+          const thumb = posterUrl
+            ? '<img class="otd-card-thumb" src="https://images.weserv.nl/?url=' + encodeURIComponent(posterUrl) + '&w=100&h=130&fit=cover&output=webp" alt="' + safeTitle + '" loading="lazy" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' +
+              '<div class="otd-card-ph" style="display:none">' + (title[0] || '?') + '</div>'
+            : '<div class="otd-card-ph">' + (title[0] || '?') + '</div>';
+          return '<div class="otd-card" onclick="openOTDCard(' + i + ')" title="' + safeTitle + ' (' + year + ')">' +
+            thumb +
+            '<div class="otd-card-body">' +
+              '<div class="otd-card-year">' + year + '</div>' +
+              '<div class="otd-card-title">' + title + '</div>' +
+            '</div></div>';
+        }).join('') +
+        (moreCount > 0
+          ? '<div class="otd-more-card" onclick="browseAllOTD()" title="See all ' + otdFilms.length + ' films">' +
+              '<div style="font-size:20px;font-family:\'Playfair Display\',serif;">+' + moreCount + '</div>' +
+              '<div style="font-size:10px;text-transform:uppercase;letter-spacing:0.1em;text-align:center;">Browse all →</div>' +
+            '</div>'
+          : '') +
+      '</div>' +
+    '</div>';
+
+  if (localStorage.getItem('belcourt-otd-collapsed') === '1') {
+    document.getElementById('otd-scroll').style.display = 'none';
+    document.getElementById('otd-toggle').textContent = 'Expand';
+  }
+}
+
+function toggleOTD() {
+  const scroll = document.getElementById('otd-scroll');
+  const btn = document.getElementById('otd-toggle');
+  if (!scroll || !btn) return;
+  const collapsing = scroll.style.display !== 'none';
+  scroll.style.display = collapsing ? 'none' : '';
+  btn.textContent = collapsing ? 'Expand' : 'Collapse';
+  localStorage.setItem('belcourt-otd-collapsed', collapsing ? '1' : '');
+}
+
+function openOTDCard(cardIdx) {
+  const film = (window.OTD_DISPLAY_FILMS || [])[cardIdx];
+  if (!film) return;
+  const otdIdx = (window.OTD_FILMS || []).findIndex(function(f) { return f.id === film.id; });
+  openOTDFilm(otdIdx);
+}
+
+function openOTDFilm(otdIdx) {
+  const otdFilms = window.OTD_FILMS || [];
+  if (otdIdx < 0 || otdIdx >= otdFilms.length) return;
+  filtered = otdFilms.slice();
+  page = Math.floor(otdIdx / PER) + 1;
+  renderTable();
+  openDetail(otdIdx);
+}
+
+function browseAllOTD() {
+  filtered = (window.OTD_FILMS || []).slice();
+  otdActive = true;
+  page = 1;
+  renderTable();
+  document.getElementById('results-info').innerHTML =
+    'Showing all <strong>' + filtered.length + '</strong> films that played on <strong>' + (window.OTD_DATE_LABEL || 'this date') + '</strong> in Belcourt history';
+  updateClearBtn();
+  showTab('list');
+}
+
+function updateURL() {
+  const params = new URLSearchParams();
+  const search = document.getElementById('search').value;
+  const year   = document.getElementById('fYear').value;
+  const decade = document.getElementById('fDecade').value;
+  const genre  = document.getElementById('fGenre').value;
+  const sort   = document.getElementById('fSort').value;
+  if (search) params.set('search', search);
+  if (year)   params.set('year', year);
+  if (decade) params.set('decade', decade);
+  if (genre)  params.set('genre', genre);
+  if (sort && sort !== 'date-desc') params.set('sort', sort);
+  if (document.getElementById('overlay').classList.contains('open') && currentDetailIdx >= 0) {
+    const film = filtered[currentDetailIdx];
+    if (film) params.set('id', film.id);
+  }
+  const qs = params.toString();
+  history.replaceState(null, '', qs ? '?' + qs : location.pathname);
+}
+
+function applyURLParams() {
+  const params = new URLSearchParams(location.search);
+  if (params.get('search')) document.getElementById('search').value = params.get('search');
+  if (params.get('year'))   document.getElementById('fYear').value   = params.get('year');
+  if (params.get('decade')) document.getElementById('fDecade').value = params.get('decade');
+  if (params.get('genre'))  document.getElementById('fGenre').value  = params.get('genre');
+  if (params.get('sort'))   document.getElementById('fSort').value   = params.get('sort');
+}
+
+function openFromURLId(id) {
+  if (!id) return;
+  let idx = filtered.findIndex(function(f) { return String(f.id) === id; });
+  if (idx === -1) {
+    filtered = ALL.slice().sort(function(a,b) { return (b.o||'').localeCompare(a.o||''); });
+    renderTable();
+    idx = filtered.findIndex(function(f) { return String(f.id) === id; });
+  }
+  if (idx !== -1) openDetail(idx);
+}
+
+function showTab(name) {
+  const tabs = ['list','stats','info'];
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+    b.classList.toggle('active', tabs[i]===name);
+  });
+  tabs.forEach(t=>document.getElementById('tab-'+t).classList.toggle('hidden',t!==name));
+  if(name==='stats') renderStats();
+}

@@ -6,6 +6,8 @@
 
 #But not these files...
 !index.html
+!app.js
+!style.css
 !belcourtfilms.json
 !belcourtactors.json
 !CNAME
