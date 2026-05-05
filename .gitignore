@@ -1,0 +1,17 @@
+# Ignore everything
+*
+
+#But not the gitignore file
+!.gitignore
+
+#But not these files...
+!index.html
+!belcourtfilms.json
+!belcourtactors.json
+!CNAME
+!README.md
+!og-image.jpg
+!/ads
+!/ads/*
+!/images
+!/images/*
