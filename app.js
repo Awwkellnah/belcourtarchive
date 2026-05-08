@@ -218,7 +218,8 @@ function onFilter() {
   filtered = ALL.filter(f => {
     const dirStr    = IMDB_DIRECTORS[String(f.id)] || f.director || f.d || '';
     const actorStr  = IMDB_ACTORS[String(f.id)] || '';
-    if(q && ![(f.t||''),(f.s||''),(f.n||''),(f.co||''),dirStr,actorStr].some(v=>v.toLowerCase().includes(q))) return false;
+    const imdbTitle = IMDB_TITLES[String(f.id)] || '';
+    if(q && ![(f.t||''),(f.s||''),(f.n||''),(f.co||''),dirStr,actorStr,imdbTitle].some(v=>v.toLowerCase().includes(q))) return false;
     if(yr && f.y != yr) return false;
     if(dc && Math.floor(f.y/10)*10 != dc) return false;
     if(gn && !parseGenres(f).includes(gn)) return false;
