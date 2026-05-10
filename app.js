@@ -1448,8 +1448,10 @@ function openOTDFilm(otdIdx) {
   const otdFilms = window.OTD_FILMS || [];
   if (otdIdx < 0 || otdIdx >= otdFilms.length) return;
   filtered = otdFilms.slice();
+  otdActive = true;
   page = Math.floor(otdIdx / PER) + 1;
   renderTable();
+  updateClearBtn();
   openDetail(otdIdx);
 }
 
