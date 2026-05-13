@@ -879,7 +879,7 @@ function renderStats() {
         labels: repYears,
         datasets: [
           { label: 'Repertory', data: repYears.map(yr => { const d=repByYear[yr]; return parseFloat((d.rep/(d.rep+d.nr)*100).toFixed(1)); }), backgroundColor: 'rgba(124,92,232,0.75)', borderWidth: 0 },
-          { label: 'New release', data: repYears.map(yr => { const d=repByYear[yr]; return parseFloat((d.nr/(d.rep+d.nr)*100).toFixed(1)); }), backgroundColor: 'rgba(74,143,232,0.75)', borderWidth: 0 },
+          { label: 'New release', data: repYears.map(yr => { const d=repByYear[yr]; return parseFloat((d.nr/(d.rep+d.nr)*100).toFixed(1)); }), backgroundColor: 'rgba(82, 232, 74, 0.75)', borderWidth: 0 },
         ]
       },
       options: {
