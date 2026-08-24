@@ -138,7 +138,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+const TWIN_PEAKS_SERIES = new Set(['Twin Peaks: The Return', 'Twin Peaks: Season 2', 'Twin Peaks, Season 1']);
+
 function displayTitle(f) {
+  if (TWIN_PEAKS_SERIES.has(f.s)) return f.t || IMDB_TITLES[String(f.id)] || '\u2014';
   return IMDB_TITLES[String(f.id)] || f.t || '\u2014';
 }
 
